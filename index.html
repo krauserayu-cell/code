@@ -3,271 +3,240 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DreamJob AI - GitHub Edition</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    
+    <title>未來職業合成照片</title>
     <style>
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        .animate-spin { animation: spin 1s linear infinite; }
-        .animate-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        /* 全局設定 */
+        body {
+            font-family: "Microsoft JhengHei", "Heiti TC", sans-serif;
+            background-color: #ffffff;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 20px;
+            margin: 0;
+        }
+
+        /* 標題區域 */
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            color: #2b579a; /* 接近圖片中的標題藍色 */
+            font-size: 2rem;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 1rem;
+        }
+
+        /* 主要內容容器 (左右兩欄) */
+        .main-container {
+            display: flex;
+            gap: 40px;
+            max-width: 900px;
+            width: 100%;
+            margin-bottom: 50px;
+            flex-wrap: wrap; /* 讓手機版自動換行 */
+            justify-content: center;
+        }
+
+        /* 左側：上傳區域 */
+        .upload-zone {
+            flex: 1;
+            min-width: 300px;
+            height: 350px;
+            background-color: #f0f6ff; /* 極淡的藍色背景 */
+            border: 2px dashed #a0c4ff;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            color: #4a6fa5;
+        }
+
+        .upload-zone:hover {
+            background-color: #e6f0ff;
+            border-color: #7aa7ff;
+        }
+
+        .upload-text-main {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .upload-text-sub {
+            font-size: 0.9rem;
+            color: #889bb5;
+        }
+
+        /* 右側：表單區域 */
+        .form-panel {
+            flex: 1;
+            min-width: 300px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            padding: 10px;
+        }
+
+        /* 性別設定 */
+        .form-group label {
+            display: block;
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 10px;
+        }
+
+        .radio-option {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            color: #555;
+        }
+
+        input[type="radio"] {
+            accent-color: #2b579a;
+            transform: scale(1.2);
+        }
+
+        /* 夢想職業輸入框 */
+        textarea {
+            width: 100%;
+            height: 120px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            resize: none; /* 禁止拉大 */
+            box-sizing: border-box;
+            background-color: #fafafa;
+            color: #333;
+        }
+
+        textarea::placeholder {
+            color: #aaa;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #5b4ddb;
+            background-color: #fff;
+        }
+
+        .hint-text {
+            font-size: 0.85rem;
+            color: #999;
+            margin-top: -15px; /* 貼近 textarea */
+            margin-bottom: 10px;
+        }
+
+        /* 按鈕 */
+        .submit-btn {
+            background-color: #5b4ddb; /* 圖片中的紫色 */
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 15px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            box-shadow: 0 4px 6px rgba(91, 77, 219, 0.3);
+            transition: transform 0.1s ease, box-shadow 0.1s ease;
+        }
+
+        .submit-btn:hover {
+            background-color: #4e40c4;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(91, 77, 219, 0.4);
+        }
+
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+
+        /* 底部合成結果標題 */
+        .result-section {
+            width: 100%;
+            text-align: center;
+            border-top: 1px solid #eee;
+            padding-top: 30px;
+        }
+
+        h2 {
+            color: #333;
+            font-size: 1.8rem;
+        }
+
     </style>
 </head>
-<body class="bg-slate-900 text-white font-sans antialiased">
-    <div id="root"></div>
+<body>
 
-    <script type="text/babel">
-        const { useState, useEffect } = React;
+    <header>
+        <h1>🚀 未來職業合成照片 🌠</h1>
+        <p class="subtitle">上傳你的照片，輸入夢想職業，讓 AI 幫你實現想像！</p>
+    </header>
 
-        // --- 圖示組件 ---
-        const Sparkles = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M9 3v4"/><path d="M3 5h4"/><path d="M3 9h4"/></svg>;
-        const Upload = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>;
-        const Camera = ({ size, className }) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>;
-        const Briefcase = ({ size, className }) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect width="20" height="14" x="2" y="7" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>;
-        const Loader2 = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>;
-        const Wand2 = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m21.648 2.352 1.285 4.54a1 1 0 0 1-.683 1.25l-4.54 1.284a1 1 0 0 1-1.25-.683l-1.285-4.541a1 1 0 0 1 .683-1.25l4.54-1.284a1 1 0 0 1 1.25.683z"/><path d="m2.352 21.648 1.285-4.54a1 1 0 0 1 .683-1.25l4.54-1.284a1 1 0 0 1 1.25.683l1.285 4.541a1 1 0 0 1-.683 1.25l-4.54 1.284a1 1 0 0 1-1.25-.683z"/><path d="M12 12 8 8"/><path d="m16 16-4-4"/></svg>;
-        const AlertCircle = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>;
-        const User = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>;
-        const CheckCircle2 = ({ size, className }) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>;
-        const Sliders = ({ size, className }) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="4" x2="4" y1="21" y2="14"/><line x1="4" x2="4" y1="10" y2="3"/><line x1="12" x2="12" y1="21" y2="12"/><line x1="12" x2="12" y1="8" y2="3"/><line x1="20" x2="20" y1="21" y2="16"/><line x1="20" x2="20" y1="12" y2="3"/><line x1="2" x2="6" y1="14" y2="14"/><line x1="10" x2="14" y1="8" y2="8"/><line x1="18" x2="22" y1="16" y2="16"/></svg>;
-        const Info = ({ size, className }) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>;
+    <div class="main-container">
+        <div class="upload-zone" onclick="document.getElementById('fileInput').click()">
+            <div class="upload-text-main">點擊上傳你的肖像照</div>
+            <div class="upload-text-sub">（最佳效果為清晰、正面的照片）</div>
+            <input type="file" id="fileInput" style="display: none;" accept="image/*">
+        </div>
 
-        function App() {
-            // 已移除 Hardcoded Key，恢復為空字串以保安全
-            const [apiKey, setApiKey] = useState('');
-            const [profession, setProfession] = useState('');
-            const [uploadedImage, setUploadedImage] = useState(null);
-            const [imageBase64, setImageBase64] = useState(null);
-            const [isGenerating, setIsGenerating] = useState(false);
-            const [resultImage, setResultImage] = useState(null);
-            const [error, setError] = useState('');
-            const [status, setStatus] = useState('');
-            const [useDemoMode, setUseDemoMode] = useState(true);
-            // 新增：後端伺服器模式開關
-            const [useBackend, setUseBackend] = useState(false); 
-            const [identityStrength, setIdentityStrength] = useState(0.85);
-
-            const handleImageUpload = (e) => {
-                const file = e.target.files[0];
-                if (file) {
-                    setUploadedImage(URL.createObjectURL(file));
-                    const reader = new FileReader();
-                    reader.onloadend = () => {
-                        setImageBase64(reader.result);
-                    };
-                    reader.readAsDataURL(file);
-                }
-            };
-
-            const simulateGeneration = () => {
-                setIsGenerating(true);
-                setError('');
-                setResultImage(null);
-                const steps = ["正在分析臉部特徵...", "正在提取 Face ID Embedding...", `正在構建${profession || '職業'}場景...`, "⚠️ 演示模式：將展示範例結果 (非真實運算)...", "最後潤飾中..."];
-                let stepIndex = 0;
-                setStatus(steps[0]);
-                const interval = setInterval(() => {
-                    stepIndex++;
-                    if (stepIndex < steps.length) {
-                        setStatus(steps[stepIndex]);
-                    } else {
-                        clearInterval(interval);
-                        setIsGenerating(false);
-                        setResultImage("https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=800&ixlib=rb-4.0.3");
-                        setStatus("生成完成！(這是演示圖片)");
-                    }
-                }, 1500);
-            };
-
-            const generateRealImage = async () => {
-                setIsGenerating(true);
-                setError('');
-                setResultImage(null);
-                setStatus("正在連接 AI 模型...");
-
-                try {
-                    // ==========================================
-                    //  👇 如果您架設了後端伺服器 (server.py)
-                    // ==========================================
-                    if (useBackend) {
-                        // 呼叫本地 Python 後端
-                        const response = await fetch("http://localhost:5000/generate", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                                image: imageBase64,
-                                prompt: `A realistic portrait of a person working as a ${profession}, exact facial features, same face`,
-                                identity_strength: identityStrength
-                            })
-                        });
-                        
-                        if (!response.ok) {
-                            const errData = await response.json();
-                            throw new Error(errData.error || "後端請求失敗");
-                        }
-                        
-                        const data = await response.json();
-                        setResultImage(data.output_url);
-                        setStatus("生成成功！");
-                        setIsGenerating(false);
-                        return; // 後端處理完畢，直接結束
-                    }
-
-                    // ==========================================
-                    //  👇 純前端模式 (需要輸入 API Key)
-                    // ==========================================
-                    if (!apiKey) {
-                        throw new Error("請輸入 Replicate API Token 或啟動後端模式");
-                    }
-
-                    const prompt = `A realistic portrait of a person working as a ${profession}, exact facial features, same face, professional photography, high quality, 8k, detailed skin texture, looking at camera`;
-                    const response = await fetch("https://api.replicate.com/v1/predictions", {
-                        method: "POST",
-                        headers: {
-                            "Authorization": `Token ${apiKey}`,
-                            "Content-Type": "application/json",
-                        },
-                        body: JSON.stringify({
-                            version: "c62584d436427d1136b607066928e44280145c387d7b1b0179f87424b9173d12",
-                            input: {
-                                image: imageBase64,
-                                prompt: prompt,
-                                negative_prompt: "low quality, blurry, distorted face, ugly, extra fingers, cartoon, anime, different face",
-                                identity_scale: parseFloat(identityStrength), 
-                                adapter_strength: parseFloat(identityStrength),
-                                num_inference_steps: 30,
-                                guidance_scale: 5
-                            }
-                        })
-                    });
-
-                    if (!response.ok) {
-                        if (response.status === 401) throw new Error("API Key 無效");
-                        const errData = await response.json().catch(() => ({}));
-                        throw new Error(errData.detail || "請求失敗");
-                    }
-
-                    const prediction = await response.json();
-                    const getUrl = prediction.urls.get;
-                    setStatus(`AI 正在繪圖中 (強度: ${identityStrength})...`);
-                    
-                    const checkStatus = async () => {
-                        const pollResponse = await fetch(getUrl, {
-                            headers: { "Authorization": `Token ${apiKey}`, "Content-Type": "application/json" }
-                        });
-                        const pollData = await pollResponse.json();
-                        if (pollData.status === "succeeded") {
-                            setResultImage(pollData.output[0]);
-                            setIsGenerating(false);
-                            setStatus("生成成功！");
-                        } else if (pollData.status === "failed") {
-                            setIsGenerating(false);
-                            setError("生成失敗，請稍後再試。");
-                        } else {
-                            setTimeout(checkStatus, 3000);
-                        }
-                    };
-                    checkStatus();
-
-                } catch (err) {
-                    console.error(err);
-                    setIsGenerating(false);
-                    if (err.name === 'TypeError' && err.message === 'Failed to fetch') {
-                        setError("⚠️ CORS 錯誤：瀏覽器阻擋了連線。請考慮使用「後端模式」並執行 server.py 來解決此問題。");
-                    } else {
-                        setError(err.message || "發生未知錯誤");
-                    }
-                }
-            };
-
-            const handleSubmit = () => {
-                if (!uploadedImage) return setError("請先上傳一張照片");
-                if (!profession) return setError("請輸入你想擔任的職業");
-                useDemoMode ? simulateGeneration() : generateRealImage();
-            };
-
-            return (
-                <div className="min-h-screen bg-slate-900 text-white font-sans selection:bg-purple-500 selection:text-white pb-10">
-                    <header className="border-b border-slate-800 bg-slate-900/50 backdrop-blur-md sticky top-0 z-10">
-                        <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                                <div className="bg-gradient-to-tr from-purple-500 to-pink-500 p-2 rounded-lg"><Sparkles className="w-5 h-5 text-white" /></div>
-                                <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-400">DreamJob AI</h1>
-                            </div>
-                            <div className="text-xs text-slate-400 border border-slate-700 px-3 py-1 rounded-full">GitHub Safe Edition</div>
-                        </div>
-                    </header>
-
-                    <main className="max-w-4xl mx-auto px-6 py-10">
-                        <div className="text-center mb-10 space-y-4">
-                            <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight">遇見<span className="text-purple-400">未來</span>的自己</h2>
-                            <p className="text-slate-400 max-w-xl mx-auto text-lg">上傳一張自拍照，輸入夢想職業，AI 將為你生成高度擬真的職業形象照。</p>
-                        </div>
-
-                        <div className="grid md:grid-cols-2 gap-8 items-start">
-                            <div className="space-y-6">
-                                <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700">
-                                    <div className="flex flex-col gap-3">
-                                        <div className="flex items-center justify-between">
-                                            <label className="text-sm font-medium text-slate-300">運行模式</label>
-                                            <div className="flex gap-2">
-                                                <button onClick={() => { setUseDemoMode(true); setUseBackend(false); }} className={`text-xs px-2 py-1 rounded ${useDemoMode ? 'bg-green-500/20 text-green-400' : 'bg-slate-700 text-slate-400'}`}>演示</button>
-                                                <button onClick={() => { setUseDemoMode(false); setUseBackend(false); }} className={`text-xs px-2 py-1 rounded ${!useDemoMode && !useBackend ? 'bg-purple-500/20 text-purple-400' : 'bg-slate-700 text-slate-400'}`}>前端 Key</button>
-                                                <button onClick={() => { setUseDemoMode(false); setUseBackend(true); }} className={`text-xs px-2 py-1 rounded ${useBackend ? 'bg-blue-500/20 text-blue-400' : 'bg-slate-700 text-slate-400'}`}>後端 Proxy</button>
-                                            </div>
-                                        </div>
-                                        
-                                        {!useDemoMode && !useBackend && (
-                                            <div>
-                                                <input type="password" placeholder="輸入 Replicate API Token (r8_...)" value={apiKey} onChange={(e) => setApiKey(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white" />
-                                                <p className="text-xs text-slate-500 mt-1">Key 僅保留在瀏覽器中。</p>
-                                            </div>
-                                        )}
-                                        {useBackend && (
-                                            <div className="text-xs text-blue-400 bg-blue-500/10 p-2 rounded">
-                                                <p>請確認已執行 <code>python server.py</code>，網頁將連線至 <code>localhost:5000</code>。</p>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-
-                                <div className={`relative group border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer overflow-hidden ${uploadedImage ? 'border-purple-500/50 bg-purple-500/5' : 'border-slate-700 hover:border-purple-500 hover:bg-slate-800'}`}>
-                                    <input type="file" accept="image/*" onChange={handleImageUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
-                                    {uploadedImage ? <img src={uploadedImage} className="h-48 mx-auto rounded-lg object-cover shadow-lg" /> : <div className="py-8"><Upload className="text-purple-400 w-8 h-8 mx-auto mb-3" /><p className="text-slate-200">上傳大頭照</p></div>}
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium text-slate-300 flex items-center gap-2"><Briefcase size={16} /> 未來職業</label>
-                                    <input type="text" value={profession} onChange={(e) => setProfession(e.target.value)} placeholder="例如: Astronaut, Doctor..." className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white" />
-                                </div>
-
-                                <div className="space-y-3 bg-slate-800/30 p-4 rounded-xl border border-slate-700/50">
-                                    <div className="flex justify-between text-sm"><label className="font-medium text-slate-300 flex items-center gap-2"><Sliders size={14} /> 臉部相似度</label><span className="text-purple-400 font-bold">{Math.round(identityStrength * 100)}%</span></div>
-                                    <input type="range" min="0.5" max="1.0" step="0.05" value={identityStrength} onChange={(e) => setIdentityStrength(e.target.value)} className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-purple-500" />
-                                </div>
-
-                                <button onClick={handleSubmit} disabled={isGenerating} className={`w-full py-4 rounded-xl font-bold text-lg shadow-lg flex items-center justify-center gap-2 transition-all ${isGenerating ? 'bg-slate-700 text-slate-400' : 'bg-gradient-to-r from-purple-600 to-pink-600 text-white'}`}>
-                                    {isGenerating ? <><Loader2 className="animate-spin" /> AI 運算中...</> : <><Wand2 /> 生成未來照片</>}
-                                </button>
-                                {error && <div className="bg-red-500/10 border border-red-500/50 text-red-400 p-4 rounded-lg flex items-start gap-3 text-sm"><AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" /><p>{error}</p></div>}
-                            </div>
-
-                            <div className="bg-slate-800/50 rounded-3xl border border-slate-700 p-6 min-h-[500px] flex flex-col items-center justify-center relative overflow-hidden">
-                                <div className="absolute top-0 right-0 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl -z-10" />
-                                <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl -z-10" />
-                                {!resultImage && !isGenerating && <div className="text-center text-slate-500 space-y-4"><div className="w-20 h-20 bg-slate-800 rounded-2xl rotate-3 mx-auto flex items-center justify-center border border-slate-700"><User className="w-10 h-10 opacity-50" /></div><p>生成的照片將會顯示在這裡</p></div>}
-                                {isGenerating && <div className="text-center space-y-6 animate-pulse"><div className="w-32 h-32 rounded-full border-4 border-purple-500/30 border-t-purple-500 animate-spin mx-auto" /><div className="space-y-2"><h3 className="text-xl font-medium text-white">AI 正在施法</h3><p className="text-purple-300">{status}</p></div></div>}
-                                {resultImage && <div className="w-full space-y-4"><div className="relative group"><img src={resultImage} className="w-full rounded-xl shadow-2xl border border-slate-600" />{useDemoMode && <div className="absolute inset-x-0 bottom-0 bg-black/70 p-2 text-center text-xs text-yellow-300">⚠️ 此為演示圖片</div>}</div><button className="w-full bg-slate-700 hover:bg-slate-600 text-white py-2 rounded-lg text-sm font-medium transition-colors" onClick={() => setResultImage(null)}>重試</button></div>}
-                            </div>
-                        </div>
-                    </main>
+        <div class="form-panel">
+            
+            <div class="form-group">
+                <label>性別設定</label>
+                <div class="radio-group">
+                    <label class="radio-option">
+                        <input type="radio" name="gender" value="male"> 男性
+                    </label>
+                    <label class="radio-option">
+                        <input type="radio" name="gender" value="female"> 女性
+                    </label>
+                    <label class="radio-option">
+                        <input type="radio" name="gender" value="none" checked> 不限 / 保持原樣
+                    </label>
                 </div>
-            );
-        }
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
-    </script>
+            </div>
+
+            <div class="form-group">
+                <label>夢想職業 (中文或英文)</label>
+                <textarea placeholder="例如：在火星上探測的宇航員，或是頂尖的人工智慧科學家"></textarea>
+            </div>
+            <div class="hint-text">請盡量具體描述職業與場景，以獲得更精準的合成效果。</div>
+
+            <button class="submit-btn">開始合成！</button>
+        </div>
+    </div>
+
+    <div class="result-section">
+        <h2>合成結果</h2>
+    </div>
+
 </body>
 </html>
