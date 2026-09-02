@@ -1,1002 +1,328 @@
-<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>班級學習積分與 QR Code 查詢系統</title>
-  <!-- Tailwind CSS CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- FontAwesome 圖示 -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <!-- QRCode.js 生成庫 -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-
-  <style>
-    @media print {
-      .no-print {
-        display: none !important;
-      }
-      .print-only {
-        display: block !important;
-      }
-      body {
-        background: white !important;
-        color: black !important;
-      }
-      .page-break {
-        page-break-inside: avoid;
-      }
-    }
-    .print-only {
-      display: none;
-    }
-    /* 自訂捲軸樣式 */
-    ::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
-    }
-    ::-webkit-scrollbar-track {
-      background: #f1f5f9;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: #cbd5e1;
-      border-radius: 4px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-      background: #94a3b8;
-    }
-  </style>
-</head>
-<body class="bg-slate-50 text-slate-800 min-h-screen font-sans antialiased flex flex-col">
-
-  <!-- 頂部導航列 (列印時隱藏) -->
-  <header class="no-print bg-indigo-600 text-white shadow-md sticky top-0 z-50">
-    <div class="max-w-6xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-3">
-      <div class="flex items-center space-x-3 cursor-pointer" onclick="switchView('student')">
-        <div class="bg-white text-indigo-600 w-10 h-10 rounded-full flex items-center justify-center font-black text-xl shadow">
-          <i class="fa-solid fa-trophy"></i>
-        </div>
+<!-- ... existing code ... -->
         <div>
-          <h1 class="text-lg font-bold tracking-wide">學習存摺積分系統</h1>
-          <p class="text-xs text-indigo-200">學生掃碼專屬查詢 · 班級獎勵點數</p>
+          <label class="block text-xs font-bold text-slate-600 mb-1">統一繳費截止日</label>
+          <input type="text" id="dueDateInput" value="115 年 9 月 15 日止" oninput="renderAll()" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500">
         </div>
-      </div>
 
-      <!-- 導航切換按鈕 -->
-      <div class="flex items-center space-x-2 text-sm bg-indigo-700/50 p-1 rounded-xl">
-        <button id="navStudentBtn" onclick="switchView('student')" class="px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 bg-white text-indigo-700 shadow-sm">
-          <i class="fa-solid fa-mobile-screen"></i> 學生查詢卡
-        </button>
-        <button id="navAdminBtn" onclick="switchView('admin')" class="px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 text-indigo-100 hover:text-white hover:bg-indigo-600/60">
-          <i class="fa-solid fa-user-gear"></i> 教師後台
-        </button>
-        <button id="navPrintBtn" onclick="switchView('print')" class="px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 text-indigo-100 hover:text-white hover:bg-indigo-600/60">
-          <i class="fa-solid fa-qrcode"></i> QR Code 列印
-        </button>
-      </div>
-    </div>
-  </header>
-
-  <!-- 訊息提示視窗 (Toast / Modal) -->
-  <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-24 opacity-0 transition-all duration-300 pointer-events-none">
-    <div class="bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-xl flex items-center space-x-3 border border-slate-700">
-      <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400 text-lg"></i>
-      <span id="toastMsg" class="text-sm font-medium">訊息通知</span>
-    </div>
-  </div>
-
-  <!-- 主要內容容器 -->
-  <main class="flex-grow max-w-6xl w-full mx-auto p-4 sm:p-6 md:p-8">
-
-    <!-- ================= 視圖 1: 學生專屬查詢頁面 (Student View) ================= -->
-    <section id="studentView" class="block">
-      <!-- 學生切換選單 (供沒有帶網址參數時快速測試) -->
-      <div class="no-print mb-6 max-w-md mx-auto bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
-        <label for="studentSelector" class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
-          <i class="fa-solid fa-arrow-pointer text-indigo-500 mr-1"></i> 快速切換預覽學生（或掃描專屬 QR Code）
-        </label>
         <div class="flex gap-2">
-          <select id="studentSelector" onchange="onStudentSelectChange(this.value)" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white">
-            <!-- 動態填入學生選項 -->
-          </select>
-          <button onclick="copyCurrentStudentUrl()" class="px-3 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-sm font-semibold hover:bg-indigo-100 transition whitespace-nowrap" title="複製此學生的專屬查詢網址">
-            <i class="fa-solid fa-link"></i> 複製網址
-          </button>
-        </div>
-      </div>
-
-      <!-- 學生個人資訊卡 -->
-      <div id="studentCardContainer" class="max-w-md mx-auto bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-100 transform transition">
-        <!-- 頂部漸層背景與頭像 -->
-        <div class="bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 p-6 text-white text-center relative">
-          <div class="absolute top-4 right-4 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-xs font-semibold tracking-wider">
-            <span id="cardSeatNumber">座號 01 號</span>
-          </div>
-          <div class="w-24 h-24 mx-auto bg-white/90 backdrop-blur rounded-full p-1 shadow-inner flex items-center justify-center text-4xl mb-3">
-            <span id="cardAvatar">🌟</span>
-          </div>
-          <h2 id="cardStudentName" class="text-2xl font-black tracking-tight">載入中...</h2>
-          <p id="cardStudentId" class="text-xs text-indigo-100 mt-1 font-mono">學號: S001</p>
-        </div>
-
-        <!-- 積分展示核心區塊 -->
-        <div class="p-6">
-          <div class="bg-gradient-to-b from-indigo-50/50 to-purple-50/30 rounded-2xl p-5 border border-indigo-100 text-center mb-6">
-            <span class="text-xs font-bold uppercase tracking-wider text-indigo-600 bg-indigo-100/80 px-3 py-1 rounded-full">
-              目前累積學習點數
-            </span>
-            <div class="flex items-center justify-center my-3">
-              <span id="cardPoints" class="text-5xl font-black text-indigo-600 tracking-tight">0</span>
-              <span class="text-lg font-bold text-slate-400 ml-2 self-end mb-1">PTS</span>
-            </div>
-            <!-- 等級徽章與稱號 -->
-            <div class="inline-flex items-center gap-1.5 bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-xs font-bold" id="cardBadge">
-              <i class="fa-solid fa-medal text-amber-500"></i>
-              <span id="cardLevelName">初階探索者</span>
-            </div>
-          </div>
-
-          <!-- 等級進度條 -->
-          <div class="mb-6">
-            <div class="flex justify-between text-xs text-slate-500 font-semibold mb-1.5">
-              <span>升級進度</span>
-              <span id="cardProgressText">距離下一階段還差 15 點</span>
-            </div>
-            <div class="w-full bg-slate-100 h-3 rounded-full overflow-hidden p-0.5 border border-slate-200">
-              <div id="cardProgressBar" class="bg-gradient-to-r from-indigo-500 to-purple-500 h-full rounded-full transition-all duration-500" style="width: 45%;"></div>
-            </div>
-          </div>
-
-          <!-- 兌換/獎勵提醒 -->
-          <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-center space-x-3 mb-6">
-            <div class="w-9 h-9 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600 flex-shrink-0">
-              <i class="fa-solid fa-gift"></i>
-            </div>
-            <div class="text-xs">
-              <p class="font-bold text-emerald-800">點數兌換獎勵</p>
-              <p class="text-emerald-600 mt-0.5">滿 50 點可兌換作業減免券或免死金牌一張！</p>
-            </div>
-          </div>
-
-          <!-- 最近積分變更歷史紀錄 -->
-          <div>
-            <h3 class="text-sm font-bold text-slate-700 mb-3 flex items-center justify-between">
-              <span><i class="fa-solid fa-clock-rotate-left mr-1.5 text-slate-400"></i> 最近點數紀錄</span>
-              <span class="text-xs text-slate-400 font-normal">最近 5 筆</span>
-            </h3>
-            <div id="cardHistoryList" class="space-y-2 max-h-48 overflow-y-auto pr-1">
-              <!-- 動態載入點數紀錄 -->
-            </div>
-          </div>
-
-        </div>
-
-        <!-- 底部更新時間 -->
-        <div class="bg-slate-50 border-t border-slate-100 px-6 py-3 text-center text-xs text-slate-400">
-          最後更新時間：<span id="cardLastUpdated">剛才</span>
-        </div>
-      </div>
-    </section>
-
-
-    <!-- ================= 視圖 2: 教師後台管理 (Teacher Admin View) ================= -->
-    <section id="adminView" class="hidden">
-      <!-- 後台操作列 -->
-      <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 mb-6 flex flex-wrap justify-between items-center gap-4">
-        <div>
-          <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
-            <i class="fa-solid fa-sliders text-indigo-600"></i> 班級學生積分管理
-          </h2>
-          <p class="text-xs text-slate-500 mt-0.5">管理學生資料、快速給予點數獎勵或扣分</p>
-        </div>
-        <div class="flex flex-wrap items-center gap-2">
-          <button onclick="openAddStudentModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition flex items-center gap-1.5 shadow-sm">
+          <button onclick="openStudentModal()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-white rounded-lg p-2 text-sm font-medium transition flex items-center justify-center gap-1">
             <i class="fa-solid fa-user-plus"></i> 新增學生
           </button>
-          <button onclick="exportData()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl text-sm font-semibold transition flex items-center gap-1.5">
-            <i class="fa-solid fa-file-export"></i> 匯出備份
-          </button>
-          <button onclick="document.getElementById('importFileInput').click()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl text-sm font-semibold transition flex items-center gap-1.5">
-            <i class="fa-solid fa-file-import"></i> 匯入備份
-          </button>
-          <input type="file" id="importFileInput" onchange="importData(event)" class="hidden" accept=".json">
-          <button onclick="resetToSampleData()" class="text-rose-500 hover:bg-rose-50 px-3 py-2 rounded-xl text-sm font-medium transition" title="重設回預設範例資料">
-            <i class="fa-solid fa-arrows-rotate"></i> 重置
+          <button onclick="loadDemoData()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg px-3 py-2 text-sm font-medium transition" title="載入範例資料">
+            <i class="fa-solid fa-rotate-left"></i>
           </button>
         </div>
       </div>
+<!-- ... existing code ... -->
+    // 渲染學生個別收費單 (三聯單/家長回條版型，具體列出自購項目名稱)
+    function renderReceipts(grade, className, teacherName, dueDate) {
+      const container = document.getElementById('receiptsContainer');
+      container.innerHTML = "";
 
-      <!-- 快速加分/搜尋篩選工具 -->
-      <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 mb-6 flex flex-wrap items-center justify-between gap-4">
-        <div class="relative flex-1 min-w-[240px]">
-          <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 transform -translate-y-1/2 text-slate-400 text-sm"></i>
-          <input type="text" id="adminSearchInput" oninput="renderAdminTable()" placeholder="搜尋姓名、座號或學號..." class="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white">
-        </div>
-        <div class="flex items-center gap-2 text-xs font-semibold text-slate-600">
-          <span>快速加分範本：</span>
-          <button onclick="quickBatchAdd('作業優良', 2)" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 px-2.5 py-1.5 rounded-lg border border-emerald-200 transition">
-            作業優良 +2
-          </button>
-          <button onclick="quickBatchAdd('主動發言', 1)" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-2.5 py-1.5 rounded-lg border border-indigo-200 transition">
-            主動發言 +1
-          </button>
-          <button onclick="quickBatchAdd('熱心服務', 3)" class="bg-amber-50 hover:bg-amber-100 text-amber-700 px-2.5 py-1.5 rounded-lg border border-amber-200 transition">
-            熱心服務 +3
-          </button>
-        </div>
-      </div>
+      studentData.forEach((s, index) => {
+        const fee = calculateFees(s, grade);
 
-      <!-- 學生管理表格 -->
-      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-        <div class="overflow-x-auto">
-          <table class="w-full text-left border-collapse">
-            <thead>
-              <tr class="bg-slate-50 border-b border-slate-200 text-xs uppercase font-bold text-slate-500">
-                <th class="py-3 px-4">座號 / 學號</th>
-                <th class="py-3 px-4">學生姓名</th>
-                <th class="py-3 px-4">目前稱號</th>
-                <th class="py-3 px-4 text-center">積分</th>
-                <th class="py-3 px-4 text-center">快速調整</th>
-                <th class="py-3 px-4 text-right">操作</th>
+        // 自購教材細項 HTML
+        let customRowsHtml = "";
+        let itemIndex = 4;
+        fee.items.forEach((it) => {
+          const amt = Number(it.amount) || 0;
+          if (amt > 0) {
+            customRowsHtml += `
+              <tr>
+                <td class="p-1 border border-slate-200">${itemIndex}. ${escapeHtml(it.name || '自購教材')}</td>
+                <td class="p-1 border border-slate-200 text-right font-medium text-purple-700 font-mono">$${amt}</td>
+                <td class="p-1 border border-slate-200 text-[11px] text-purple-600">班級自購</td>
               </tr>
-            </thead>
-            <tbody id="adminStudentTableBody" class="divide-y divide-slate-100 text-sm">
-              <!-- 動態填入學生列表 -->
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-
-    <!-- ================= 視圖 3: QR Code 批量列印 (Print / QR Codes View) ================= -->
-    <section id="printView" class="hidden">
-      <!-- 列印模式提示列 (列印時隱藏) -->
-      <div class="no-print bg-indigo-50 border border-indigo-200 rounded-2xl p-4 mb-6 flex flex-wrap justify-between items-center gap-4">
-        <div>
-          <h3 class="font-bold text-indigo-900 text-sm flex items-center gap-2">
-            <i class="fa-solid fa-print"></i> 學生專屬 QR Code 小卡
-          </h3>
-          <p class="text-xs text-indigo-700 mt-0.5">點擊下方按鈕即可一鍵呼叫瀏覽器列印，將小卡剪裁後貼在學生聯絡簿或課桌上。</p>
-        </div>
-        <button onclick="window.print()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow transition flex items-center gap-2">
-          <i class="fa-solid fa-print"></i> 立即列印全部小卡
-        </button>
-      </div>
-
-      <!-- QR Code 卡片網格 (自適應排列，列印時排版優雅) -->
-      <div id="qrCardsGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        <!-- 動態產生 QR Code 卡片 -->
-      </div>
-    </section>
-
-  </main>
-
-  <!-- ================= 模態視窗: 新增/編輯學生 (Modal) ================= -->
-  <div id="studentModal" class="no-print fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 transform transition">
-      <div class="flex justify-between items-center mb-5">
-        <h3 id="modalTitle" class="text-lg font-bold text-slate-800">新增學生</h3>
-        <button onclick="closeStudentModal()" class="text-slate-400 hover:text-slate-600 p-1">
-          <i class="fa-solid fa-xmark text-lg"></i>
-        </button>
-      </div>
-
-      <form id="studentForm" onsubmit="saveStudent(event)" class="space-y-4">
-        <input type="hidden" id="editOriginalId">
-
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="block text-xs font-semibold text-slate-600 mb-1">座號 *</label>
-            <input type="number" id="inputSeat" required min="1" max="99" placeholder="例如: 1" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-slate-600 mb-1">學號/自訂代碼 *</label>
-            <input type="text" id="inputId" required placeholder="例如: S001" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-          </div>
-        </div>
-
-        <div>
-          <label class="block text-xs font-semibold text-slate-600 mb-1">學生姓名 *</label>
-          <input type="text" id="inputName" required placeholder="例如: 王小明" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-        </div>
-
-        <div>
-          <label class="block text-xs font-semibold text-slate-600 mb-1">頭像 Emoji</label>
-          <div class="flex gap-2">
-            <input type="text" id="inputAvatar" value="🌟" class="w-16 text-center bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
-            <div class="flex items-center gap-1.5 text-lg overflow-x-auto p-1 bg-slate-50 rounded-xl border border-slate-200">
-              <span class="cursor-pointer hover:scale-125 transition" onclick="selectEmoji('🌟')">🌟</span>
-              <span class="cursor-pointer hover:scale-125 transition" onclick="selectEmoji('🚀')">🚀</span>
-              <span class="cursor-pointer hover:scale-125 transition" onclick="selectEmoji('🦄')">🦄</span>
-              <span class="cursor-pointer hover:scale-125 transition" onclick="selectEmoji('🦁')">🦁</span>
-              <span class="cursor-pointer hover:scale-125 transition" onclick="selectEmoji('🎨')">🎨</span>
-              <span class="cursor-pointer hover:scale-125 transition" onclick="selectEmoji('⚽')">⚽</span>
-              <span class="cursor-pointer hover:scale-125 transition" onclick="selectEmoji('🍀')">🍀</span>
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <label class="block text-xs font-semibold text-slate-600 mb-1">起始積分</label>
-          <input type="number" id="inputPoints" value="0" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-        </div>
-
-        <div class="flex justify-end gap-2 pt-3 border-t border-slate-100">
-          <button type="button" onclick="closeStudentModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-sm font-semibold transition">
-            取消
-          </button>
-          <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition shadow-sm">
-            儲存學生
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- ================= 模態視窗: 自訂加減分 (Point Adjust Modal) ================= -->
-  <div id="pointModal" class="no-print fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-100">
-      <div class="flex justify-between items-center mb-4">
-        <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
-          <i class="fa-solid fa-star text-amber-500"></i> 調整點數紀錄
-        </h3>
-        <button onclick="closePointModal()" class="text-slate-400 hover:text-slate-600 p-1">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
-      </div>
-
-      <div class="text-center py-2 mb-4 bg-slate-50 rounded-2xl">
-        <div id="pointModalStudentName" class="font-bold text-slate-800">學生名稱</div>
-        <div class="text-xs text-slate-500 mt-0.5">目前點數：<span id="pointModalCurrentPoints" class="font-bold text-indigo-600">0</span> 點</div>
-      </div>
-
-      <form id="pointForm" onsubmit="submitPointAdjustment(event)" class="space-y-4">
-        <input type="hidden" id="pointStudentId">
-
-        <div>
-          <label class="block text-xs font-semibold text-slate-600 mb-1">變更點數 (正數加分，負數扣分) *</label>
-          <input type="number" id="pointChangeAmount" required placeholder="例如: 2 或 -1" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm font-bold text-center focus:outline-none focus:ring-2 focus:ring-indigo-500">
-        </div>
-
-        <div>
-          <label class="block text-xs font-semibold text-slate-600 mb-1">原因說明 *</label>
-          <input type="text" id="pointReason" required placeholder="例如: 課堂主動發問、作業整潔..." class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-        </div>
-
-        <div class="flex gap-1.5 flex-wrap">
-          <button type="button" onclick="setQuickReason('課堂優良發言', 1)" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-1 rounded-lg">發言 +1</button>
-          <button type="button" onclick="setQuickReason('作業優秀', 2)" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-1 rounded-lg">作業 +2</button>
-          <button type="button" onclick="setQuickReason('熱心助人', 2)" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-1 rounded-lg">助人 +2</button>
-          <button type="button" onclick="setQuickReason('未帶課本', -1)" class="text-xs bg-rose-50 hover:bg-rose-100 text-rose-600 px-2 py-1 rounded-lg">缺帶 -1</button>
-        </div>
-
-        <div class="flex justify-end gap-2 pt-3 border-t border-slate-100">
-          <button type="button" onclick="closePointModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-sm font-semibold transition">
-            取消
-          </button>
-          <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition shadow-sm">
-            確認送出
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- 底部版權宣告 (列印時隱藏) -->
-  <footer class="no-print bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-400 mt-auto">
-    <p>班級學習積分查詢系統 · 支援手機掃描 QR Code 個人化查詢</p>
-  </footer>
-
-  <!-- ================= 系統邏輯 Javascript ================= -->
-  <script>
-    // 預設範例學生名單
-    const DEFAULT_STUDENTS = [
-      {
-        id: "S001",
-        seat: 1,
-        name: "王小明",
-        avatar: "🌟",
-        points: 28,
-        history: [
-          { time: "2026/08/30 09:15", reason: "開學預習表現優異", delta: 5 },
-          { time: "2026/08/30 14:20", reason: "主動協助整理班級圖書", delta: 3 },
-          { time: "2026/08/31 10:00", reason: "數學隨堂測驗滿分", delta: 10 }
-        ]
-      },
-      {
-        id: "S002",
-        seat: 2,
-        name: "李美華",
-        avatar: "🦄",
-        points: 42,
-        history: [
-          { time: "2026/08/29 11:30", reason: "英文朗讀流暢生動", delta: 5 },
-          { time: "2026/08/30 15:40", reason: "自然實驗組長認真負責", delta: 4 },
-          { time: "2026/08/31 08:30", reason: "準時繳交作業且字體工整", delta: 2 }
-        ]
-      },
-      {
-        id: "S003",
-        seat: 3,
-        name: "陳冠宇",
-        avatar: "🚀",
-        points: 15,
-        history: [
-          { time: "2026/08/30 10:10", reason: "體育課團隊合作精神佳", delta: 3 },
-          { time: "2026/08/31 11:20", reason: "上課專注發言", delta: 2 }
-        ]
-      },
-      {
-        id: "S004",
-        seat: 4,
-        name: "張雅婷",
-        avatar: "🦁",
-        points: 56,
-        history: [
-          { time: "2026/08/28 16:00", reason: "暑假自主閱讀達標", delta: 15 },
-          { time: "2026/08/30 13:30", reason: "擔任值日生打掃認真", delta: 3 }
-        ]
-      },
-      {
-        id: "S005",
-        seat: 5,
-        name: "林哲瑋",
-        avatar: "🎨",
-        points: 22,
-        history: [
-          { time: "2026/08/30 14:00", reason: "美術作品展覽入選", delta: 8 }
-        ]
-      }
-    ];
-
-    // 全域狀態
-    let students = [];
-    let currentStudentId = null;
-    let qrInstances = {};
-
-    // 初始化程式
-    window.onload = function() {
-      loadStudentsFromStorage();
-      
-      // 解析網址參數 (例如 ?sid=S001 或 ?id=S001)
-      const params = new URLSearchParams(window.location.search);
-      const urlSid = params.get('sid') || params.get('id');
-
-      if (urlSid) {
-        // 如果網址包含學號，優先顯示該學生的卡片
-        currentStudentId = urlSid;
-        switchView('student');
-      } else {
-        // 預設選取第一位學生
-        if (students.length > 0) {
-          currentStudentId = students[0].id;
-        }
-      }
-
-      refreshAllViews();
-    };
-
-    // 從記憶體載入學生
-    function loadStudentsFromStorage() {
-      const stored = window.__studentDataStore;
-      if (stored && Array.isArray(stored) && stored.length > 0) {
-        students = stored;
-      } else {
-        students = JSON.parse(JSON.stringify(DEFAULT_STUDENTS));
-        window.__studentDataStore = students;
-      }
-    }
-
-    // 儲存狀態
-    function saveStudentsToStorage() {
-      window.__studentDataStore = students;
-    }
-
-    // 視圖切換 (student / admin / print)
-    function switchView(viewName) {
-      document.getElementById('studentView').classList.add('hidden');
-      document.getElementById('adminView').classList.add('hidden');
-      document.getElementById('printView').classList.add('hidden');
-
-      const navStudent = document.getElementById('navStudentBtn');
-      const navAdmin = document.getElementById('navAdminBtn');
-      const navPrint = document.getElementById('navPrintBtn');
-
-      // 重設按鈕樣式
-      [navStudent, navAdmin, navPrint].forEach(btn => {
-        btn.className = "px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 text-indigo-100 hover:text-white hover:bg-indigo-600/60";
-      });
-
-      if (viewName === 'student') {
-        document.getElementById('studentView').classList.remove('hidden');
-        navStudent.className = "px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 bg-white text-indigo-700 shadow-sm";
-        renderStudentCard();
-      } else if (viewName === 'admin') {
-        document.getElementById('adminView').classList.remove('hidden');
-        navAdmin.className = "px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 bg-white text-indigo-700 shadow-sm";
-        renderAdminTable();
-      } else if (viewName === 'print') {
-        document.getElementById('printView').classList.remove('hidden');
-        navPrint.className = "px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 bg-white text-indigo-700 shadow-sm";
-        renderQRCards();
-      }
-    }
-
-    // 重新渲染全部視圖
-    function refreshAllViews() {
-      updateStudentSelector();
-      renderStudentCard();
-      renderAdminTable();
-      renderQRCards();
-    }
-
-    // 更新學生下拉選單
-    function updateStudentSelector() {
-      const selector = document.getElementById('studentSelector');
-      selector.innerHTML = '';
-      
-      students.sort((a, b) => a.seat - b.seat).forEach(st => {
-        const opt = document.createElement('option');
-        opt.value = st.id;
-        opt.textContent = `[${String(st.seat).padStart(2, '0')} 號] ${st.name} (${st.points} 分)`;
-        if (st.id === currentStudentId) {
-          opt.selected = true;
-        }
-        selector.appendChild(opt);
-      });
-    }
-
-    function onStudentSelectChange(val) {
-      currentStudentId = val;
-      renderStudentCard();
-    }
-
-    // 計算等級與進度
-    function getStudentLevel(points) {
-      if (points >= 100) return { name: "傳奇榮譽大師 👑", next: 150, max: 150, prev: 100, color: "from-amber-400 to-yellow-600" };
-      if (points >= 50) return { name: "鑽石探險家 💎", next: 100, max: 100, prev: 50, color: "from-cyan-400 to-blue-600" };
-      if (points >= 30) return { name: "黃金勇者 ⚔️", next: 50, max: 50, prev: 30, color: "from-amber-300 to-orange-500" };
-      if (points >= 15) return { name: "進階小達人 🌿", next: 30, max: 30, prev: 15, color: "from-emerald-400 to-teal-600" };
-      return { name: "初階探索者 🌟", next: 15, max: 15, prev: 0, color: "from-indigo-400 to-purple-600" };
-    }
-
-    // ================= 渲染學生卡片 =================
-    function renderStudentCard() {
-      const student = students.find(s => s.id === currentStudentId) || students[0];
-      if (!student) return;
-
-      document.getElementById('cardSeatNumber').textContent = `座號 ${String(student.seat).padStart(2, '0')} 號`;
-      document.getElementById('cardAvatar').textContent = student.avatar || '🌟';
-      document.getElementById('cardStudentName').textContent = student.name;
-      document.getElementById('cardStudentId').textContent = `專屬代碼: ${student.id}`;
-      document.getElementById('cardPoints').textContent = student.points;
-
-      // 等級與進度
-      const levelInfo = getStudentLevel(student.points);
-      document.getElementById('cardLevelName').textContent = levelInfo.name;
-      
-      const needed = Math.max(0, levelInfo.next - student.points);
-      const span = levelInfo.next - levelInfo.prev;
-      const currentInSpan = student.points - levelInfo.prev;
-      const percent = Math.min(100, Math.max(5, Math.round((currentInSpan / span) * 100)));
-
-      document.getElementById('cardProgressText').textContent = needed > 0 ? `距離下一階稱號還差 ${needed} 點` : `已達最高稱號榮譽！`;
-      document.getElementById('cardProgressBar').style.width = `${percent}%`;
-
-      // 歷史紀錄
-      const historyList = document.getElementById('cardHistoryList');
-      historyList.innerHTML = '';
-
-      if (!student.history || student.history.length === 0) {
-        historyList.innerHTML = `<div class="text-xs text-slate-400 py-3 text-center">尚無積分變動紀錄</div>`;
-      } else {
-        const sortedHistory = [...student.history].reverse().slice(0, 5);
-        sortedHistory.forEach(item => {
-          const isPos = item.delta > 0;
-          const div = document.createElement('div');
-          div.className = "flex justify-between items-center bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-xs";
-          div.innerHTML = `
-            <div>
-              <p class="font-bold text-slate-700">${item.reason}</p>
-              <p class="text-[10px] text-slate-400">${item.time}</p>
-            </div>
-            <span class="font-bold px-2 py-0.5 rounded-lg ${isPos ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}">
-              ${isPos ? '+' + item.delta : item.delta}
-            </span>
-          `;
-          historyList.appendChild(div);
+            `;
+            itemIndex++;
+          }
         });
-      }
 
-      document.getElementById('cardLastUpdated').textContent = new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
-    }
-
-    // 複製專屬網址
-    function copyCurrentStudentUrl() {
-      const baseUrl = window.location.origin + window.location.pathname;
-      const targetUrl = `${baseUrl}?sid=${currentStudentId}`;
-
-      const tempInput = document.createElement('input');
-      tempInput.value = targetUrl;
-      document.body.appendChild(tempInput);
-      tempInput.select();
-      try {
-        document.execCommand('copy');
-        showToast("已成功複製該學生的專屬查詢網址！", "success");
-      } catch (err) {
-        showToast("複製失敗，請手動複製網址", "error");
-      }
-      document.body.removeChild(tempInput);
-    }
-
-    // ================= 教師後台渲染 =================
-    function renderAdminTable() {
-      const tbody = document.getElementById('adminStudentTableBody');
-      const keyword = (document.getElementById('adminSearchInput').value || '').trim().toLowerCase();
-      tbody.innerHTML = '';
-
-      const filtered = students.filter(s => {
-        return s.name.toLowerCase().includes(keyword) ||
-               String(s.seat).includes(keyword) ||
-               s.id.toLowerCase().includes(keyword);
-      }).sort((a, b) => a.seat - b.seat);
-
-      if (filtered.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-slate-400 text-xs">查無相符的學生資料</td></tr>`;
-        return;
-      }
-
-      filtered.forEach(st => {
-        const level = getStudentLevel(st.points);
-        const tr = document.createElement('tr');
-        tr.className = "hover:bg-slate-50/80 transition";
-        tr.innerHTML = `
-          <td class="py-3 px-4">
-            <span class="inline-block bg-slate-100 font-mono font-bold text-slate-700 px-2 py-0.5 rounded-md text-xs mr-1.5">
-              #${String(st.seat).padStart(2, '0')}
-            </span>
-            <span class="text-xs text-slate-400 font-mono">${st.id}</span>
-          </td>
-          <td class="py-3 px-4">
-            <div class="flex items-center space-x-2">
-              <span class="text-lg">${st.avatar || '🌟'}</span>
-              <span class="font-bold text-slate-800">${st.name}</span>
+        const card = document.createElement('div');
+        card.className = "receipt-card bg-white border border-slate-300 rounded-xl p-4 shadow-sm relative overflow-hidden flex flex-col justify-between";
+        card.innerHTML = `
+          <div>
+            <!-- 收據抬頭 -->
+            <div class="border-b-2 border-slate-800 pb-2 mb-2 flex justify-between items-center">
+              <div>
+                <h3 class="font-bold text-slate-900 text-sm md:text-base tracking-wide">雲林縣東勢國小 115-1 註冊收費單</h3>
+                <span class="text-xs text-slate-600">${className} ｜ 座號：<strong>${s.seat}</strong> 號 ｜ 姓名：<strong>${escapeHtml(s.name)}</strong></span>
+              </div>
+              <div class="text-right flex items-center gap-2">
+                <div class="no-print flex items-center gap-1 mr-1">
+                  <button onclick="openStudentModal(${index})" class="text-blue-600 hover:text-blue-800 p-1.5 rounded hover:bg-blue-50 text-xs" title="編輯學生資料">
+                    <i class="fa-solid fa-pen-to-square"></i>
+                  </button>
+                  <button onclick="deleteStudent(${index})" class="text-rose-500 hover:text-rose-700 p-1.5 rounded hover:bg-rose-50 text-xs" title="刪除此學生">
+                    <i class="fa-solid fa-trash-can"></i>
+                  </button>
+                </div>
+                <div>
+                  <span class="inline-block text-xs font-bold px-2 py-0.5 rounded ${s.paid ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">
+                    ${s.paid ? '● 已完成繳費' : '○ 尚未繳費'}
+                  </span>
+                  <div class="text-[11px] text-slate-500 mt-0.5">${s.category}</div>
+                </div>
+              </div>
             </div>
-          </td>
-          <td class="py-3 px-4">
-            <span class="text-xs font-semibold px-2 py-1 rounded-full bg-slate-100 text-slate-600">
-              ${level.name}
-            </span>
-          </td>
-          <td class="py-3 px-4 text-center">
-            <span class="font-black text-indigo-600 text-base">${st.points}</span>
-          </td>
-          <td class="py-3 px-4 text-center">
-            <div class="inline-flex items-center gap-1">
-              <button onclick="quickAddPoints('${st.id}', 1, '課堂優良發言')" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 w-7 h-7 rounded-lg text-xs font-bold transition" title="加 1 分">+1</button>
-              <button onclick="quickAddPoints('${st.id}', 2, '表現優異')" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 w-7 h-7 rounded-lg text-xs font-bold transition" title="加 2 分">+2</button>
-              <button onclick="quickAddPoints('${st.id}', -1, '課堂違規')" class="bg-rose-50 hover:bg-rose-100 text-rose-700 w-7 h-7 rounded-lg text-xs font-bold transition" title="扣 1 分">-1</button>
-              <button onclick="openPointModal('${st.id}')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 h-7 rounded-lg text-xs font-medium transition ml-1">自訂</button>
-            </div>
-          </td>
-          <td class="py-3 px-4 text-right">
-            <div class="flex items-center justify-end space-x-1.5">
-              <button onclick="viewStudentProfile('${st.id}')" class="text-indigo-600 hover:bg-indigo-50 p-1.5 rounded-lg text-xs font-medium" title="查看學生視角">
-                <i class="fa-solid fa-eye"></i>
-              </button>
-              <button onclick="openEditStudentModal('${st.id}')" class="text-slate-600 hover:bg-slate-100 p-1.5 rounded-lg text-xs font-medium" title="編輯基本資料">
+
+            <!-- 費用明細表 -->
+<!-- ... existing code ... -->
+          <td class="border border-slate-300 p-1.5 text-left text-[11px] text-slate-600">${fee.note}</td>
+          <td class="border border-slate-300 p-1.5 no-print">
+            <div class="flex items-center justify-center gap-1.5">
+              <button onclick="openStudentModal(${index})" class="text-blue-600 hover:text-blue-800 p-1" title="編輯學生資料">
                 <i class="fa-solid fa-pen-to-square"></i>
               </button>
-              <button onclick="deleteStudent('${st.id}')" class="text-rose-500 hover:bg-rose-50 p-1.5 rounded-lg text-xs font-medium" title="刪除學生">
-                <i class="fa-solid fa-trash"></i>
+              <button onclick="deleteStudent(${index})" class="text-rose-500 hover:text-rose-700 p-1" title="刪除學生">
+                <i class="fa-solid fa-trash-can"></i>
               </button>
             </div>
           </td>
         `;
         tbody.appendChild(tr);
       });
-    }
+<!-- ... existing code ... -->
+  <!-- 自訂通用訊息提示盒 (取代被瀏覽器封鎖的 alert) -->
+  <div id="customAlertModal" class="no-print fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-3 text-center">
+      <div id="customAlertIcon" class="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mx-auto text-xl">
+        <i class="fa-solid fa-circle-info"></i>
+      </div>
+      <h3 id="customAlertTitle" class="font-bold text-slate-900 text-base">系統提示</h3>
+      <p id="customAlertMsg" class="text-xs text-slate-600 leading-relaxed"></p>
+      <button onclick="closeCustomAlert()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg text-xs font-bold transition">
+        好，我知道了
+      </button>
+    </div>
+  </div>
 
-    function viewStudentProfile(id) {
-      currentStudentId = id;
-      switchView('student');
-    }
+  <!-- 新增 / 編輯學生彈窗 Modal -->
+  <div id="studentEditModal" class="no-print fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+      <div class="flex justify-between items-center border-b pb-3">
+        <h3 id="studentModalTitle" class="font-bold text-base md:text-lg text-slate-900 flex items-center gap-2">
+          <i class="fa-solid fa-user-pen text-blue-600"></i>
+          編輯學生收費資料
+        </h3>
+        <button onclick="closeStudentModal()" class="text-slate-400 hover:text-slate-600 text-lg">&times;</button>
+      </div>
 
-    // 快速加分
-    function quickAddPoints(id, delta, reason) {
-      const student = students.find(s => s.id === id);
-      if (!student) return;
+      <form id="studentEditForm" onsubmit="handleSaveStudent(event)" class="space-y-3 text-xs">
+        <input type="hidden" id="editStudentIndex" value="">
 
-      student.points += delta;
-      if (!student.history) student.history = [];
-
-      const now = new Date();
-      const timeStr = `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-      student.history.push({
-        time: timeStr,
-        reason: reason,
-        delta: delta
-      });
-
-      saveStudentsToStorage();
-      renderAdminTable();
-      updateStudentSelector();
-      if (currentStudentId === id) renderStudentCard();
-      showToast(`${student.name} ${delta > 0 ? '+' + delta : delta} 點 (${reason})`, "success");
-    }
-
-    // 全班快速加分
-    function quickBatchAdd(reason, amount) {
-      students.forEach(st => {
-        st.points += amount;
-        if (!st.history) st.history = [];
-        const now = new Date();
-        const timeStr = `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-        st.history.push({ time: timeStr, reason: `[全班] ${reason}`, delta: amount });
-      });
-
-      saveStudentsToStorage();
-      renderAdminTable();
-      updateStudentSelector();
-      renderStudentCard();
-      showToast(`全班已批量加上 ${amount} 點 (${reason})`, "success");
-    }
-
-    // ================= QR Code 批量產生 (Print View) =================
-    function renderQRCards() {
-      const grid = document.getElementById('qrCardsGrid');
-      grid.innerHTML = '';
-      qrInstances = {};
-
-      const baseUrl = window.location.origin + window.location.pathname;
-
-      students.sort((a, b) => a.seat - b.seat).forEach(st => {
-        const studentUrl = `${baseUrl}?sid=${st.id}`;
-        
-        const card = document.createElement('div');
-        card.className = "bg-white p-4 rounded-2xl border-2 border-dashed border-indigo-200 shadow-sm flex flex-col items-center text-center page-break relative";
-        
-        const qrContainerId = `qrcode_${st.id}`;
-        card.innerHTML = `
-          <div class="w-full flex justify-between items-center text-xs font-bold text-slate-500 mb-2">
-            <span class="bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-md">座號 ${String(st.seat).padStart(2,'0')}</span>
-            <span class="text-slate-400 font-mono">${st.id}</span>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">座號：</label>
+            <input type="number" id="modalStudentSeat" required min="1" max="99" class="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 font-mono">
           </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">學生姓名：</label>
+            <input type="text" id="modalStudentName" required placeholder="例如：陳大明" class="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 font-medium">
+          </div>
+        </div>
 
-          <div class="text-2xl mb-1">${st.avatar || '🌟'}</div>
-          <h4 class="font-black text-slate-800 text-lg mb-2">${st.name}</h4>
-          
-          <div id="${qrContainerId}" class="p-2 bg-white border border-slate-200 rounded-xl shadow-inner flex items-center justify-center mb-3"></div>
-          
-          <p class="text-[11px] font-semibold text-slate-500">掃描 QR Code 查個人積分</p>
-          <p class="text-[9px] text-slate-400 font-mono truncate w-full px-2 mt-0.5">${studentUrl}</p>
-        `;
-        grid.appendChild(card);
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">學生身分別 (影響減免與補助)：</label>
+          <select id="modalStudentCategory" class="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 font-medium text-slate-800">
+            <option value="一般學生">一般學生 (全額繳交)</option>
+            <option value="有弟妹在校/同仁子女">有弟妹在校/同仁子女 (免收家長會費 $100)</option>
+            <option value="低收入戶學生">低收入戶學生 (免會費、免團保費)</option>
+            <option value="原住民學生">原住民學生 (免收學生團保費 $266)</option>
+            <option value="身障學生(輕/中度)">身障學生(輕/中度) (先繳後發補助款 $316)</option>
+            <option value="身障/子女(重度極重度)">身障/子女(重度極重度) (免收學生團保費 $266)</option>
+          </select>
+        </div>
 
-        // 產生 QR Code
-        setTimeout(() => {
-          const container = document.getElementById(qrContainerId);
-          if (container) {
-            new QRCode(container, {
-              text: studentUrl,
-              width: 120,
-              height: 120,
-              colorDark: "#312e81",
-              colorLight: "#ffffff",
-              correctLevel: QRCode.CorrectLevel.M
-            });
-          }
-        }, 50);
-      });
+        <!-- 自購教材細項金額設定 (個別微調) -->
+        <div class="bg-purple-50 p-3 rounded-xl border border-purple-200 space-y-2">
+          <span class="font-bold text-purple-900 block">此學生自購項目金額 (可個別設定)：</span>
+          <div class="space-y-1.5">
+            <div class="flex items-center justify-between">
+              <span id="modalCustomLabel1" class="text-purple-800 truncate pr-2">項目1</span>
+              <div class="flex items-center shrink-0">
+                <span class="text-slate-500 mr-1">$</span>
+                <input type="number" id="modalCustomPrice1" min="0" class="w-20 border border-slate-300 rounded p-1 text-right font-mono">
+              </div>
+            </div>
+            <div class="flex items-center justify-between">
+              <span id="modalCustomLabel2" class="text-purple-800 truncate pr-2">項目2</span>
+              <div class="flex items-center shrink-0">
+                <span class="text-slate-500 mr-1">$</span>
+                <input type="number" id="modalCustomPrice2" min="0" class="w-20 border border-slate-300 rounded p-1 text-right font-mono">
+              </div>
+            </div>
+            <div class="flex items-center justify-between">
+              <span id="modalCustomLabel3" class="text-purple-800 truncate pr-2">項目3</span>
+              <div class="flex items-center shrink-0">
+                <span class="text-slate-500 mr-1">$</span>
+                <input type="number" id="modalCustomPrice3" min="0" class="w-20 border border-slate-300 rounded p-1 text-right font-mono">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">繳費狀態：</label>
+          <select id="modalStudentPaid" class="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500">
+            <option value="false">○ 尚未繳費</option>
+            <option value="true">● 已完成繳費</option>
+          </select>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-3 border-t">
+          <button type="button" onclick="closeStudentModal()" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg font-medium text-slate-700 transition">
+            取消
+          </button>
+          <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold transition flex items-center gap-1.5 shadow">
+            <i class="fa-solid fa-circle-check"></i> 儲存資料
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Google 試算表匯入彈窗 Modal (支援網址與Ctrl+V直接貼上) -->
+<!-- ... existing code ... -->
+    // 年級變更處理
+    function handleGradeChange() {
+      renderAll();
     }
 
-    // ================= 模態視窗與表單處理 =================
-    function openAddStudentModal() {
-      document.getElementById('modalTitle').textContent = "新增學生";
-      document.getElementById('editOriginalId').value = "";
-      document.getElementById('inputSeat').value = students.length + 1;
-      document.getElementById('inputId').value = `S${String(students.length + 1).padStart(3, '0')}`;
-      document.getElementById('inputName').value = "";
-      document.getElementById('inputAvatar').value = "🌟";
-      document.getElementById('inputPoints').value = "0";
-      document.getElementById('studentModal').classList.remove('hidden');
+    // 切換繳費狀態
+    function togglePaidStatus(index) {
+      studentData[index].paid = !studentData[index].paid;
+      renderAll();
     }
 
-    function openEditStudentModal(id) {
-      const student = students.find(s => s.id === id);
-      if (!student) return;
+    // 開啟新增 / 編輯學生彈窗 (index 為 null 代表新增)
+    function openStudentModal(index = null) {
+      onCustomItemConfigChange(); // 確保項目名稱同步
 
-      document.getElementById('modalTitle').textContent = "編輯學生資料";
-      document.getElementById('editOriginalId').value = student.id;
-      document.getElementById('inputSeat').value = student.seat;
-      document.getElementById('inputId').value = student.id;
-      document.getElementById('inputName').value = student.name;
-      document.getElementById('inputAvatar').value = student.avatar || "🌟";
-      document.getElementById('inputPoints').value = student.points;
-      document.getElementById('studentModal').classList.remove('hidden');
+      const modal = document.getElementById('studentEditModal');
+      const title = document.getElementById('studentModalTitle');
+      const idxInput = document.getElementById('editStudentIndex');
+      const seatInput = document.getElementById('modalStudentSeat');
+      const nameInput = document.getElementById('modalStudentName');
+      const catSelect = document.getElementById('modalStudentCategory');
+      const paidSelect = document.getElementById('modalStudentPaid');
+
+      const l1 = document.getElementById('modalCustomLabel1');
+      const l2 = document.getElementById('modalCustomLabel2');
+      const l3 = document.getElementById('modalCustomLabel3');
+      const p1 = document.getElementById('modalCustomPrice1');
+      const p2 = document.getElementById('modalCustomPrice2');
+      const p3 = document.getElementById('modalCustomPrice3');
+
+      l1.innerText = `1. ${globalCustomConfig[0].name}：`;
+      l2.innerText = `2. ${globalCustomConfig[1].name}：`;
+      l3.innerText = `3. ${globalCustomConfig[2].name}：`;
+
+      if (index === null || index === undefined) {
+        // 新增模式
+        title.innerHTML = `<i class="fa-solid fa-user-plus text-blue-600"></i> 新增學生收費資料`;
+        idxInput.value = "";
+        const nextSeat = studentData.length > 0 ? Math.max(...studentData.map(s => s.seat)) + 1 : 1;
+        seatInput.value = nextSeat;
+        nameInput.value = "";
+        catSelect.value = "一般學生";
+        p1.value = globalCustomConfig[0].price;
+        p2.value = globalCustomConfig[1].price;
+        p3.value = globalCustomConfig[2].price;
+        paidSelect.value = "false";
+      } else {
+        // 編輯模式
+        const s = studentData[index];
+        title.innerHTML = `<i class="fa-solid fa-user-pen text-blue-600"></i> 編輯學生：${escapeHtml(s.name)} (座號 ${s.seat})`;
+        idxInput.value = index;
+        seatInput.value = s.seat;
+        nameInput.value = s.name;
+        catSelect.value = s.category;
+        p1.value = Number(s.customItems?.[0]?.amount ?? globalCustomConfig[0].price);
+        p2.value = Number(s.customItems?.[1]?.amount ?? globalCustomConfig[1].price);
+        p3.value = Number(s.customItems?.[2]?.amount ?? globalCustomConfig[2].price);
+        paidSelect.value = s.paid ? "true" : "false";
+      }
+
+      modal.classList.remove('hidden');
+      nameInput.focus();
     }
 
     function closeStudentModal() {
-      document.getElementById('studentModal').classList.add('hidden');
+      document.getElementById('studentEditModal').classList.add('hidden');
     }
 
-    function selectEmoji(emoji) {
-      document.getElementById('inputAvatar').value = emoji;
-    }
-
-    function saveStudent(e) {
+    // 儲存學生 (新增或修改)
+    function handleSaveStudent(e) {
       e.preventDefault();
-      const origId = document.getElementById('editOriginalId').value;
-      const seat = parseInt(document.getElementById('inputSeat').value, 10);
-      const id = document.getElementById('inputId').value.trim();
-      const name = document.getElementById('inputName').value.trim();
-      const avatar = document.getElementById('inputAvatar').value.trim() || "🌟";
-      const points = parseInt(document.getElementById('inputPoints').value, 10) || 0;
+      const idxStr = document.getElementById('editStudentIndex').value;
+      const seat = parseInt(document.getElementById('modalStudentSeat').value, 10);
+      const name = document.getElementById('modalStudentName').value.trim();
+      const category = document.getElementById('modalStudentCategory').value;
+      const isPaid = document.getElementById('modalStudentPaid').value === "true";
 
-      // 檢查代碼重複
-      if (!origId && students.some(s => s.id === id)) {
-        showToast("學號/代碼不可重複！", "error");
+      const p1 = parseInt(document.getElementById('modalCustomPrice1').value, 10) || 0;
+      const p2 = parseInt(document.getElementById('modalCustomPrice2').value, 10) || 0;
+      const p3 = parseInt(document.getElementById('modalCustomPrice3').value, 10) || 0;
+
+      if (!name) {
+        showCustomAlert("提示", "請輸入學生姓名！", true);
         return;
       }
 
-      if (origId) {
-        // 編輯
-        const index = students.findIndex(s => s.id === origId);
-        if (index !== -1) {
-          students[index].seat = seat;
-          students[index].id = id;
-          students[index].name = name;
-          students[index].avatar = avatar;
-          students[index].points = points;
+      const customItems = [
+        { name: globalCustomConfig[0].name, amount: p1 },
+        { name: globalCustomConfig[1].name, amount: p2 },
+        { name: globalCustomConfig[2].name, amount: p3 }
+      ];
+
+      if (idxStr === "") {
+        // 新增學生
+        if (studentData.some(s => s.seat === seat)) {
+          showCustomAlert("座號重複", `座號 ${seat} 號已經存在於名單中，請修改為其他座號！`, true);
+          return;
         }
-        showToast(`已更新 ${name} 的資料`, "success");
-      } else {
-        // 新增
-        students.push({
-          id,
-          seat,
-          name,
-          avatar,
-          points,
-          history: [{
-            time: new Date().toLocaleString('zh-TW'),
-            reason: "建立學生帳號",
-            delta: points
-          }]
+        studentData.push({
+          id: Date.now(),
+          seat: seat,
+          name: name,
+          category: category,
+          customItems: customItems,
+          paid: isPaid
         });
-        showToast(`已新增學生 ${name}`, "success");
-      }
-
-      saveStudentsToStorage();
-      closeStudentModal();
-      refreshAllViews();
-    }
-
-    function deleteStudent(id) {
-      const student = students.find(s => s.id === id);
-      if (!student) return;
-
-      // 自訂確認提示 (不用 window.confirm)
-      if (confirm(`確定要刪除學生「${student.name}」嗎？所有紀錄將清除。`)) {
-        students = students.filter(s => s.id !== id);
-        if (currentStudentId === id && students.length > 0) {
-          currentStudentId = students[0].id;
-        }
-        saveStudentsToStorage();
-        refreshAllViews();
-        showToast("學生已成功刪除", "info");
-      }
-    }
-
-    // ================= 點數自訂調整 Modal =================
-    function openPointModal(id) {
-      const student = students.find(s => s.id === id);
-      if (!student) return;
-
-      document.getElementById('pointStudentId').value = student.id;
-      document.getElementById('pointModalStudentName').textContent = `${student.name} (#${student.seat})`;
-      document.getElementById('pointModalCurrentPoints').textContent = student.points;
-      document.getElementById('pointChangeAmount').value = "";
-      document.getElementById('pointReason').value = "";
-      document.getElementById('pointModal').classList.remove('hidden');
-    }
-
-    function closePointModal() {
-      document.getElementById('pointModal').classList.add('hidden');
-    }
-
-    function setQuickReason(reason, amount) {
-      document.getElementById('pointReason').value = reason;
-      document.getElementById('pointChangeAmount').value = amount;
-    }
-
-    function submitPointAdjustment(e) {
-      e.preventDefault();
-      const id = document.getElementById('pointStudentId').value;
-      const amount = parseInt(document.getElementById('pointChangeAmount').value, 10);
-      const reason = document.getElementById('pointReason').value.trim();
-
-      if (isNaN(amount) || !reason) {
-        showToast("請填寫有效的變更點數與原因", "error");
-        return;
-      }
-
-      quickAddPoints(id, amount, reason);
-      closePointModal();
-    }
-
-    // ================= 匯出與匯入資料備份 =================
-    function exportData() {
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(students, null, 2));
-      const downloadAnchor = document.createElement('a');
-      downloadAnchor.setAttribute("href", dataStr);
-      downloadAnchor.setAttribute("download", `class_points_backup_${new Date().toISOString().slice(0,10)}.json`);
-      document.body.appendChild(downloadAnchor);
-      downloadAnchor.click();
-      downloadAnchor.remove();
-      showToast("班級積分資料已成功匯出備份！", "success");
-    }
-
-    function importData(e) {
-      const file = e.target.files[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = function(evt) {
-        try {
-          const parsed = JSON.parse(evt.target.result);
-          if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].id) {
-            students = parsed;
-            currentStudentId = students[0].id;
-            saveStudentsToStorage();
-            refreshAllViews();
-            showToast("成功匯入學生積分資料！", "success");
-          } else {
-            showToast("匯入格式不符合，請確認 JSON 格式", "error");
-          }
-        } catch (err) {
-          showToast("檔案讀取失敗，非有效 JSON 檔案", "error");
-        }
-      };
-      reader.readAsText(file);
-      e.target.value = '';
-    }
-
-    function resetToSampleData() {
-      if (confirm("確定要重設回預設範例資料嗎？")) {
-        students = JSON.parse(JSON.stringify(DEFAULT_STUDENTS));
-        currentStudentId = students[0].id;
-        saveStudentsToStorage();
-        refreshAllViews();
-        showToast("已成功重設回預設範例！", "info");
-      }
-    }
-
-    // ================= 提示通知 (Toast) =================
-    function showToast(msg, type = "success") {
-      const toast = document.getElementById('toast');
-      const toastMsg = document.getElementById('toastMsg');
-      const toastIcon = document.getElementById('toastIcon');
-
-      toastMsg.textContent = msg;
-
-      if (type === "success") {
-        toastIcon.className = "fa-solid fa-circle-check text-emerald-400 text-lg";
-      } else if (type === "error") {
-        toastIcon.className = "fa-solid fa-triangle-exclamation text-rose-400 text-lg";
+        showCustomAlert("新增成功", `已成功將「${seat} 號 ${name}」加入收費名冊！`);
       } else {
-        toastIcon.className = "fa-solid fa-circle-info text-sky-400 text-lg";
+        // 編輯學生
+        const editIdx = parseInt(idxStr, 10);
+        // 檢查座號是否與其他人衝突
+        const seatConflict = studentData.some((s, i) => i !== editIdx && s.seat === seat);
+        if (seatConflict) {
+          showCustomAlert("座號重複", `座號 ${seat} 號已被其他學生使用，請重新確認！`, true);
+          return;
+        }
+
+        studentData[editIdx].seat = seat;
+        studentData[editIdx].name = name;
+        studentData[editIdx].category = category;
+        studentData[editIdx].customItems = customItems;
+        studentData[editIdx].paid = isPaid;
+        showCustomAlert("儲存成功", `「${seat} 號 ${name}」的收費資料已修改完成！`);
       }
 
-      toast.classList.remove('translate-y-24', 'opacity-0');
-      toast.classList.add('translate-y-0', 'opacity-100');
-
-      setTimeout(() => {
-        toast.classList.remove('translate-y-0', 'opacity-100');
-        toast.classList.add('translate-y-24', 'opacity-0');
-      }, 3000);
+      // 自動依座號由小至大排序
+      studentData.sort((a, b) => a.seat - b.seat);
+      closeStudentModal();
+      renderAll();
     }
-  </script>
-</body>
-</html>
+
+    // 刪除學生
+    function deleteStudent(index) {
+      const s = studentData[index];
+      studentData.splice(index, 1);
+      renderAll();
+      showCustomAlert("刪除成功", `已將「${s.seat} 號 ${s.name}」移出收費名冊。`);
+    }
+
+    // 載入預設資料
+<!-- ... existing code ... -->
