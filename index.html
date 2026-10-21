@@ -1,328 +1,1312 @@
-<!-- ... existing code ... -->
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>蠟筆小新與向日葵班！猜拳大冒險 (じゃんけんぽん！)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Mochiy+Pop+One&family=Zen+Maru+Gothic:wght@700;900&family=Noto+Sans+TC:wght@600;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/canvas-confetti/1.6.0/confetti.browser.min.js"></script>
+  
+  <style>
+    body {
+      font-family: 'Zen Maru Gothic', 'Noto Sans TC', sans-serif;
+      background: radial-gradient(circle at 50% 20%, #FFF7D1 0%, #FFE082 50%, #FFB74D 100%);
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      overflow-x: hidden;
+    }
+    
+    .shinchan-font {
+      font-family: 'Mochiy Pop One', cursive;
+    }
+
+    /* Comic book pop shadows & borders */
+    .comic-box {
+      border: 4px solid #263238;
+      box-shadow: 6px 6px 0px #263238;
+    }
+    .comic-box-sm {
+      border: 3px solid #263238;
+      box-shadow: 4px 4px 0px #263238;
+    }
+    .comic-btn {
+      transition: all 0.12s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .comic-btn:active {
+      transform: translate(3px, 3px);
+      box-shadow: 1px 1px 0px #263238;
+    }
+
+    /* Animation bouncing & wobble */
+    @keyframes bobble {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      50% { transform: translateY(-8px) rotate(-1.5deg); }
+    }
+    .animate-bobble {
+      animation: bobble 2.6s infinite ease-in-out;
+    }
+
+    @keyframes fistShake {
+      0%, 100% { transform: translateY(0) rotate(0deg) scale(1); }
+      25% { transform: translateY(-25px) rotate(-12deg) scale(1.1); }
+      50% { transform: translateY(0) rotate(0deg) scale(1); }
+      75% { transform: translateY(-25px) rotate(12deg) scale(1.1); }
+    }
+    .animate-fist-shake {
+      animation: fistShake 0.45s infinite ease-in-out;
+    }
+
+    /* Polka dot anime background pattern */
+    .dot-pattern {
+      background-image: radial-gradient(#FF8A65 18%, transparent 18%);
+      background-size: 26px 26px;
+      opacity: 0.22;
+    }
+
+    /* Cartoon Speech Bubble Tail */
+    .bubble-tail::after {
+      content: '';
+      position: absolute;
+      bottom: -14px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 14px 12px 0 12px;
+      border-style: solid;
+      border-color: #ffffff transparent transparent transparent;
+      display: block;
+      width: 0;
+    }
+    .bubble-tail-border::before {
+      content: '';
+      position: absolute;
+      bottom: -18px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 18px 15px 0 15px;
+      border-style: solid;
+      border-color: #263238 transparent transparent transparent;
+      display: block;
+      width: 0;
+    }
+
+    /* Custom Scrollbar for list */
+    .custom-scrollbar::-webkit-scrollbar {
+      height: 6px;
+      width: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #f59e0b;
+      border-radius: 9999px;
+    }
+  </style>
+</head>
+<body class="min-h-screen text-slate-800 flex flex-col justify-between relative selection:bg-rose-300">
+  <div class="fixed inset-0 dot-pattern pointer-events-none z-0"></div>
+
+  <!-- Header Banner -->
+  <header class="relative z-10 w-full max-w-4xl mx-auto px-4 pt-3 pb-1">
+    <div class="comic-box bg-white/95 backdrop-blur-sm rounded-2xl p-3 flex flex-wrap items-center justify-between gap-3">
+      <!-- Title & Emblem -->
+      <div class="flex items-center space-x-2">
+        <div class="w-12 h-12 bg-amber-400 rounded-full border-2 border-slate-800 flex items-center justify-center text-2xl shadow-inner animate-pulse">
+          🌻
+        </div>
         <div>
-          <label class="block text-xs font-bold text-slate-600 mb-1">統一繳費截止日</label>
-          <input type="text" id="dueDateInput" value="115 年 9 月 15 日止" oninput="renderAll()" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500">
+          <div class="text-[10px] md:text-xs font-bold text-amber-600 tracking-wider">雙葉幼稚園・向日葵班</div>
+          <h1 class="text-xl md:text-2xl font-black text-rose-600 shinchan-font tracking-wide">
+            小新與好友猜拳大對決！
+          </h1>
+        </div>
+      </div>
+
+      <!-- Stats Bar & Controls -->
+      <div class="flex flex-wrap items-center gap-2 text-sm font-black">
+        <div class="comic-box-sm bg-pink-100 px-3 py-1.5 rounded-xl flex items-center gap-1.5 text-pink-700">
+          <span class="text-lg">🐊</span>
+          <span>巧克比: <span id="chocobiCount" class="text-rose-600 font-extrabold text-base">0</span> 盒</span>
+        </div>
+        <div class="comic-box-sm bg-yellow-100 px-3 py-1.5 rounded-xl flex items-center gap-1.5 text-yellow-800">
+          <span>🔥 連勝: <span id="streakCount" class="text-amber-600 font-extrabold text-base">0</span></span>
         </div>
 
-        <div class="flex gap-2">
-          <button onclick="openStudentModal()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-white rounded-lg p-2 text-sm font-medium transition flex items-center justify-center gap-1">
-            <i class="fa-solid fa-user-plus"></i> 新增學生
+        <!-- BGM Toggle Button -->
+        <button id="bgmToggleBtn" onclick="toggleBGM()" class="comic-box-sm bg-purple-400 hover:bg-purple-300 text-white px-2.5 py-1.5 rounded-xl comic-btn text-xs font-black flex items-center gap-1 shadow-sm" title="背景音樂開關">
+          <span id="bgmIcon">🎵</span>
+          <span id="bgmStatusText">BGM: 關</span>
+        </button>
+
+        <!-- Sound FX Toggle -->
+        <button id="soundToggleBtn" onclick="toggleAudio()" class="comic-box-sm bg-emerald-300 hover:bg-emerald-400 p-2 rounded-xl text-slate-900 comic-btn text-base" title="音效開關">
+          🔊
+        </button>
+
+        <!-- Admin / Manage Characters Button -->
+        <button onclick="openAdminModal()" class="comic-box-sm bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1.5 rounded-xl comic-btn text-xs font-black flex items-center gap-1 shadow-sm" title="管理人物與音樂">
+          ⚙️ 後台管理
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="relative z-10 max-w-4xl w-full mx-auto px-4 py-2 flex-1 flex flex-col justify-center">
+    
+    <!-- Character Select Ribbon -->
+    <div class="mb-3">
+      <div class="flex items-center justify-between text-xs font-bold text-slate-700 mb-1 px-1">
+        <span>選擇要挑戰的對手（可在後台自訂改名與新增）：</span>
+        <span class="text-rose-600 font-black animate-bounce">點擊頭像換人挑戰！ 👈</span>
+      </div>
+      <div id="characterRoster" class="flex gap-2.5 overflow-x-auto pb-2 pt-1 custom-scrollbar px-1">
+        <!-- Rendered by JS -->
+      </div>
+    </div>
+
+    <!-- Arena Card -->
+    <div class="comic-box bg-white/90 backdrop-blur-md rounded-3xl p-4 md:p-6 shadow-xl relative overflow-hidden flex flex-col justify-between">
+      
+      <!-- Anime Dialogue Bubble -->
+      <div class="relative w-full max-w-lg mx-auto mb-4 z-20">
+        <div class="bubble-tail-border"></div>
+        <div class="bubble-tail"></div>
+        <div id="dialogueBox" class="comic-box-sm bg-white text-slate-900 rounded-2xl py-2.5 px-4 text-center font-extrabold text-base md:text-lg min-h-[52px] flex items-center justify-center transition-all duration-300">
+          「哦呵呵呵～大姐姐，要不要跟我小新猜一把呀？」
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4 items-center justify-center my-2 min-h-[220px]">
+        
+        <!-- Opponent Display (Left/Top) -->
+        <div class="flex flex-col items-center justify-center text-center">
+          <div class="relative group">
+            <div id="opponentAura" class="absolute -inset-2 bg-gradient-to-r from-amber-300 to-rose-300 rounded-full blur-md opacity-70 group-hover:opacity-100 transition duration-300"></div>
+            <div id="opponentAvatarContainer" class="relative w-32 h-32 md:w-44 md:h-44 comic-box rounded-full bg-amber-50 flex items-center justify-center overflow-hidden animate-bobble">
+              <div id="opponentAvatarSlot" class="w-full h-full flex items-center justify-center">
+                <!-- Avatar injected here -->
+              </div>
+            </div>
+            <!-- Opponent Hand Gesture Reveal -->
+            <div id="opponentHandBadge" class="comic-box-sm absolute -bottom-3 -right-2 bg-yellow-300 rounded-2xl px-3 py-1.5 text-3xl font-black text-slate-900 transform scale-0 transition-transform duration-300">
+              ✊
+            </div>
+          </div>
+          <div class="mt-3">
+            <span id="opponentTag" class="text-[10px] md:text-xs font-black uppercase tracking-wider bg-rose-500 text-white px-2 py-0.5 rounded-full shadow-sm">
+              向日葵班主角
+            </span>
+            <h2 id="opponentName" class="text-lg md:text-2xl font-black text-slate-800 shinchan-font mt-0.5">
+              野原新之助
+            </h2>
+          </div>
+        </div>
+
+        <!-- Player / Visitor Display (Right) -->
+        <div class="flex flex-col items-center justify-center text-center">
+          <div class="relative">
+            <div id="playerAura" class="absolute -inset-2 bg-cyan-300 rounded-full blur-md opacity-60"></div>
+            <div id="playerAvatarContainer" class="relative w-32 h-32 md:w-44 md:h-44 comic-box rounded-full bg-cyan-50 flex items-center justify-center overflow-hidden">
+              <div id="playerHandDisplay" class="text-6xl md:text-7xl select-none transition-transform duration-200">
+                ❓
+              </div>
+            </div>
+            <!-- Player Status Tag -->
+            <div id="playerBadge" class="comic-box-sm absolute -bottom-3 -left-2 bg-teal-300 rounded-2xl px-3 py-1 text-sm font-black text-slate-900">
+              你 (訪客)
+            </div>
+          </div>
+          <div class="mt-3">
+            <span class="text-[10px] md:text-xs font-black uppercase tracking-wider bg-sky-500 text-white px-2 py-0.5 rounded-full shadow-sm">
+              挑戰者
+            </span>
+            <h3 id="playerStateText" class="text-lg md:text-2xl font-black text-slate-800 shinchan-font mt-0.5">
+              準備出拳！
+            </h3>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Result Banner Modal/Area -->
+      <div id="resultBanner" class="text-center font-black text-2xl md:text-3xl py-2 my-1 rounded-xl transform scale-95 opacity-0 transition-all duration-300 pointer-events-none">
+        平手！再來一把！
+      </div>
+
+      <!-- Rock-Paper-Scissors Buttons -->
+      <div class="mt-1">
+        <div class="text-center text-xs md:text-sm font-extrabold text-slate-600 mb-2">
+          👇 請選擇你的出拳（剪刀、石頭、布！）：
+        </div>
+        <div class="grid grid-cols-3 gap-3 md:gap-4 max-w-md mx-auto">
+          <!-- Rock -->
+          <button onclick="playHand('rock')" class="comic-box comic-btn bg-amber-400 hover:bg-amber-300 active:bg-amber-500 rounded-2xl py-3 px-2 flex flex-col items-center justify-center text-slate-900 cursor-pointer shadow-md">
+            <span class="text-4xl md:text-5xl mb-1 hover:scale-110 transition-transform">✊</span>
+            <span class="font-black text-sm md:text-base">石頭 (グー)</span>
           </button>
-          <button onclick="loadDemoData()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg px-3 py-2 text-sm font-medium transition" title="載入範例資料">
-            <i class="fa-solid fa-rotate-left"></i>
+          
+          <!-- Scissors -->
+          <button onclick="playHand('scissors')" class="comic-box comic-btn bg-rose-400 hover:bg-rose-300 active:bg-rose-500 rounded-2xl py-3 px-2 flex flex-col items-center justify-center text-slate-900 cursor-pointer shadow-md">
+            <span class="text-4xl md:text-5xl mb-1 hover:scale-110 transition-transform">✌️</span>
+            <span class="font-black text-sm md:text-base">剪刀 (チョキ)</span>
+          </button>
+
+          <!-- Paper -->
+          <button onclick="playHand('paper')" class="comic-box comic-btn bg-emerald-400 hover:bg-emerald-300 active:bg-emerald-500 rounded-2xl py-3 px-2 flex flex-col items-center justify-center text-slate-900 cursor-pointer shadow-md">
+            <span class="text-4xl md:text-5xl mb-1 hover:scale-110 transition-transform">🖐️</span>
+            <span class="font-black text-sm md:text-base">布 (パー)</span>
           </button>
         </div>
       </div>
-<!-- ... existing code ... -->
-    // 渲染學生個別收費單 (三聯單/家長回條版型，具體列出自購項目名稱)
-    function renderReceipts(grade, className, teacherName, dueDate) {
-      const container = document.getElementById('receiptsContainer');
-      container.innerHTML = "";
 
-      studentData.forEach((s, index) => {
-        const fee = calculateFees(s, grade);
+      <!-- Action Footer Toolbar -->
+      <div class="flex items-center justify-between mt-4 pt-3 border-t-2 border-slate-200 text-xs font-bold text-slate-600">
+        <button onclick="nextOpponent()" class="comic-box-sm bg-orange-100 hover:bg-orange-200 px-3 py-1.5 rounded-xl text-orange-900 comic-btn flex items-center gap-1">
+          <span>🔄 下一位對手</span>
+        </button>
+        <button onclick="openAdminModal()" class="comic-box-sm bg-amber-100 hover:bg-amber-200 px-3 py-1.5 rounded-xl text-amber-900 comic-btn flex items-center gap-1 font-black">
+          <span>✏️ 編輯人物 / 背景音樂</span>
+        </button>
+        <button onclick="resetScore()" class="comic-box-sm bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-xl text-slate-700 comic-btn">
+          戰績重置
+        </button>
+      </div>
+    </div>
+  </main>
 
-        // 自購教材細項 HTML
-        let customRowsHtml = "";
-        let itemIndex = 4;
-        fee.items.forEach((it) => {
-          const amt = Number(it.amount) || 0;
-          if (amt > 0) {
-            customRowsHtml += `
-              <tr>
-                <td class="p-1 border border-slate-200">${itemIndex}. ${escapeHtml(it.name || '自購教材')}</td>
-                <td class="p-1 border border-slate-200 text-right font-medium text-purple-700 font-mono">$${amt}</td>
-                <td class="p-1 border border-slate-200 text-[11px] text-purple-600">班級自購</td>
-              </tr>
-            `;
-            itemIndex++;
-          }
-        });
+  <footer class="relative z-10 w-full max-w-4xl mx-auto px-4 py-2 text-center text-[11px] font-bold text-slate-700">
+    蠟筆小新動漫風格同人互動娛樂頁面 🌟 支援後台即時改名、新增人物與背景音樂切換！
+  </footer>
 
-        const card = document.createElement('div');
-        card.className = "receipt-card bg-white border border-slate-300 rounded-xl p-4 shadow-sm relative overflow-hidden flex flex-col justify-between";
-        card.innerHTML = `
+  <!-- ========================================== -->
+  <!-- ADMIN & MANAGEMENT MODAL (後台管理彈窗) -->
+  <!-- ========================================== -->
+  <div id="adminModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="comic-box bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl animate-bobble-once">
+      
+      <!-- Modal Header -->
+      <div class="bg-amber-400 border-b-4 border-slate-800 p-4 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="text-2xl">⚙️</span>
+          <h2 class="text-xl font-black text-slate-900 shinchan-font">向日葵班遊戲後台管理中心</h2>
+        </div>
+        <button onclick="closeAdminModal()" class="comic-box-sm bg-rose-500 hover:bg-rose-600 text-white w-9 h-9 rounded-xl flex items-center justify-center font-black text-lg comic-btn">
+          ✕
+        </button>
+      </div>
+
+      <!-- Tab Switchers -->
+      <div class="flex border-b-2 border-slate-300 bg-slate-100 px-4 pt-2 gap-2 text-sm font-black">
+        <button id="tabBtnChars" onclick="switchAdminTab('characters')" class="px-4 py-2 rounded-t-xl bg-white border-t-2 border-x-2 border-slate-800 text-rose-600">
+          👥 人物管理與新增
+        </button>
+        <button id="tabBtnBgm" onclick="switchAdminTab('bgm')" class="px-4 py-2 rounded-t-xl bg-slate-200 text-slate-600 hover:bg-slate-300">
+          🎵 背景音樂 (BGM) 設定
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="p-4 md:p-6 overflow-y-auto flex-1 custom-scrollbar space-y-6">
+        
+        <!-- ================= TAB 1: CHARACTERS ================= -->
+        <div id="tabContentCharacters" class="space-y-6">
+          
+          <!-- Character List with Edit & Delete -->
           <div>
-            <!-- 收據抬頭 -->
-            <div class="border-b-2 border-slate-800 pb-2 mb-2 flex justify-between items-center">
-              <div>
-                <h3 class="font-bold text-slate-900 text-sm md:text-base tracking-wide">雲林縣東勢國小 115-1 註冊收費單</h3>
-                <span class="text-xs text-slate-600">${className} ｜ 座號：<strong>${s.seat}</strong> 號 ｜ 姓名：<strong>${escapeHtml(s.name)}</strong></span>
-              </div>
-              <div class="text-right flex items-center gap-2">
-                <div class="no-print flex items-center gap-1 mr-1">
-                  <button onclick="openStudentModal(${index})" class="text-blue-600 hover:text-blue-800 p-1.5 rounded hover:bg-blue-50 text-xs" title="編輯學生資料">
-                    <i class="fa-solid fa-pen-to-square"></i>
-                  </button>
-                  <button onclick="deleteStudent(${index})" class="text-rose-500 hover:text-rose-700 p-1.5 rounded hover:bg-rose-50 text-xs" title="刪除此學生">
-                    <i class="fa-solid fa-trash-can"></i>
-                  </button>
+            <div class="flex items-center justify-between mb-2">
+              <h3 class="font-black text-slate-800 text-base flex items-center gap-1.5">
+                <span>📋 現有人物列表</span>
+                <span class="text-xs text-slate-500 font-normal">（可直接修改名字、稱號與台詞）</span>
+              </h3>
+              <button onclick="restoreDefaultCharacters()" class="text-xs bg-slate-200 hover:bg-slate-300 text-slate-700 px-2.5 py-1 rounded-lg font-bold">
+                🔄 還原預設角色
+              </button>
+            </div>
+            
+            <div id="adminCharacterList" class="space-y-3">
+              <!-- Injected by JS -->
+            </div>
+          </div>
+
+          <!-- Add New Character Form -->
+          <div class="border-t-2 border-dashed border-slate-300 pt-5">
+            <h3 class="font-black text-slate-800 text-base mb-3 flex items-center gap-1.5">
+              <span>➕ 新增自訂對戰人物</span>
+              <span class="text-xs bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full">支援自訂頭像</span>
+            </h3>
+
+            <div class="bg-amber-50/70 p-4 rounded-2xl border-2 border-amber-200 space-y-3 text-sm">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label class="block font-black text-slate-700 mb-1">人物姓名：</label>
+                  <input id="newCharName" type="text" placeholder="例如：動感超人、美冴" class="w-full border-2 border-slate-400 rounded-xl px-3 py-1.5 font-bold focus:border-rose-500 focus:outline-none">
                 </div>
                 <div>
-                  <span class="inline-block text-xs font-bold px-2 py-0.5 rounded ${s.paid ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">
-                    ${s.paid ? '● 已完成繳費' : '○ 尚未繳費'}
-                  </span>
-                  <div class="text-[11px] text-slate-500 mt-0.5">${s.category}</div>
+                  <label class="block font-black text-slate-700 mb-1">人物稱號 / 標籤：</label>
+                  <input id="newCharTag" type="text" placeholder="例如：正義英雄、向日葵班" class="w-full border-2 border-slate-400 rounded-xl px-3 py-1.5 font-bold focus:border-rose-500 focus:outline-none">
                 </div>
               </div>
+
+              <!-- Avatar Selection -->
+              <div>
+                <label class="block font-black text-slate-700 mb-1">頭像外觀：</label>
+                <div class="flex flex-wrap gap-2 items-center mb-2">
+                  <label class="flex items-center gap-1 cursor-pointer bg-white px-2 py-1 rounded-lg border border-slate-300">
+                    <input type="radio" name="newAvatarType" value="preset_star" checked onchange="toggleAvatarInput()">
+                    <span>🌟 動感星星俠</span>
+                  </label>
+                  <label class="flex items-center gap-1 cursor-pointer bg-white px-2 py-1 rounded-lg border border-slate-300">
+                    <input type="radio" name="newAvatarType" value="preset_chocobi" onchange="toggleAvatarInput()">
+                    <span>🐊 巧克比鱷魚</span>
+                  </label>
+                  <label class="flex items-center gap-1 cursor-pointer bg-white px-2 py-1 rounded-lg border border-slate-300">
+                    <input type="radio" name="newAvatarType" value="custom_url" onchange="toggleAvatarInput()">
+                    <span>🖼️ 圖片網址 (URL)</span>
+                  </label>
+                </div>
+
+                <div id="customUrlInputContainer" class="hidden">
+                  <input id="newCharAvatarUrl" type="text" placeholder="輸入圖片網址 (https://...)" class="w-full border-2 border-slate-400 rounded-xl px-3 py-1.5 font-bold focus:border-rose-500 focus:outline-none text-xs">
+                </div>
+              </div>
+
+              <!-- Quotes -->
+              <div class="space-y-2">
+                <div>
+                  <label class="block font-black text-slate-700 mb-1">開場對白：</label>
+                  <input id="newCharIntro" type="text" placeholder="「哈哈哈哈！看我的厲害！」" class="w-full border-2 border-slate-400 rounded-xl px-3 py-1.5 font-bold focus:border-rose-500 focus:outline-none text-xs">
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <div>
+                    <label class="block font-black text-emerald-700 text-xs mb-1">角色獲勝台詞：</label>
+                    <input id="newCharWin" type="text" placeholder="「我贏啦！」" class="w-full border-2 border-slate-400 rounded-xl px-2 py-1 text-xs font-bold">
+                  </div>
+                  <div>
+                    <label class="block font-black text-rose-700 text-xs mb-1">角色落敗台詞：</label>
+                    <input id="newCharLose" type="text" placeholder="「嗚哇～輸了！」" class="w-full border-2 border-slate-400 rounded-xl px-2 py-1 text-xs font-bold">
+                  </div>
+                  <div>
+                    <label class="block font-black text-amber-700 text-xs mb-1">平手台詞：</label>
+                    <input id="newCharDraw" type="text" placeholder="「平手再來！」" class="w-full border-2 border-slate-400 rounded-xl px-2 py-1 text-xs font-bold">
+                  </div>
+                </div>
+              </div>
+
+              <button onclick="addNewCharacter()" class="w-full comic-box-sm bg-emerald-500 hover:bg-emerald-600 text-white font-black py-2.5 rounded-xl comic-btn text-base flex items-center justify-center gap-1 shadow-md">
+                ✨ 確認新增人物
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ================= TAB 2: BGM SETTINGS ================= -->
+        <div id="tabContentBgm" class="hidden space-y-5">
+          <div class="bg-purple-50 p-4 rounded-2xl border-2 border-purple-200 space-y-4">
+            <h3 class="font-black text-purple-950 text-base flex items-center gap-2">
+              <span>🎧 背景音樂播放模式</span>
+            </h3>
+
+            <!-- BGM Mode Selector -->
+            <div class="space-y-3">
+              <label class="flex items-start gap-2.5 p-3 rounded-xl bg-white border-2 border-purple-300 cursor-pointer hover:bg-purple-50 transition">
+                <input type="radio" name="bgmMode" value="synth" checked onchange="changeBgmMode('synth')" class="mt-1">
+                <div>
+                  <div class="font-black text-slate-800">模式 1：內建日式動漫歡樂合成音樂 (免外部載入，推薦！)</div>
+                  <div class="text-xs text-slate-500 font-bold">使用瀏覽器 Web Audio 即時演奏歡樂的蠟筆小新日常風格旋律，輕快無版權問題。</div>
+                </div>
+              </label>
+
+              <label class="flex items-start gap-2.5 p-3 rounded-xl bg-white border-2 border-purple-300 cursor-pointer hover:bg-purple-50 transition">
+                <input type="radio" name="bgmMode" value="custom" onchange="changeBgmMode('custom')" class="mt-1">
+                <div class="w-full">
+                  <div class="font-black text-slate-800">模式 2：自訂音訊連結 (MP3 / Audio URL)</div>
+                  <div class="text-xs text-slate-500 font-bold mb-2">貼上您想播放的網路音樂檔案連結：</div>
+                  <input id="customBgmUrlInput" type="text" placeholder="https://example.com/anime-theme.mp3" class="w-full border-2 border-slate-400 rounded-xl px-3 py-1.5 text-xs font-bold focus:border-purple-600 focus:outline-none">
+                </div>
+              </label>
             </div>
 
-            <!-- 費用明細表 -->
-<!-- ... existing code ... -->
-          <td class="border border-slate-300 p-1.5 text-left text-[11px] text-slate-600">${fee.note}</td>
-          <td class="border border-slate-300 p-1.5 no-print">
-            <div class="flex items-center justify-center gap-1.5">
-              <button onclick="openStudentModal(${index})" class="text-blue-600 hover:text-blue-800 p-1" title="編輯學生資料">
-                <i class="fa-solid fa-pen-to-square"></i>
+            <!-- Volume Control -->
+            <div class="flex items-center gap-4 bg-white p-3 rounded-xl border border-slate-200">
+              <span class="font-black text-slate-700 text-xs whitespace-nowrap">🔊 BGM 音量：</span>
+              <input id="bgmVolumeSlider" type="range" min="0" max="1" step="0.05" value="0.2" oninput="updateBgmVolume(this.value)" class="w-full accent-purple-600 cursor-pointer">
+              <span id="bgmVolumeLabel" class="text-xs font-black text-purple-700 min-w-[36px]">20%</span>
+            </div>
+
+            <!-- BGM Play/Pause Controls -->
+            <div class="flex gap-2 pt-2">
+              <button onclick="startBGM()" class="flex-1 comic-box-sm bg-emerald-500 hover:bg-emerald-600 text-white font-black py-2 rounded-xl comic-btn text-sm">
+                ▶️ 立即播放音樂
               </button>
-              <button onclick="deleteStudent(${index})" class="text-rose-500 hover:text-rose-700 p-1" title="刪除學生">
-                <i class="fa-solid fa-trash-can"></i>
+              <button onclick="stopBGM()" class="flex-1 comic-box-sm bg-rose-500 hover:bg-rose-600 text-white font-black py-2 rounded-xl comic-btn text-sm">
+                ⏹️ 暫停音樂
               </button>
             </div>
-          </td>
-        `;
-        tbody.appendChild(tr);
-      });
-<!-- ... existing code ... -->
-  <!-- 自訂通用訊息提示盒 (取代被瀏覽器封鎖的 alert) -->
-  <div id="customAlertModal" class="no-print fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
-    <div class="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-3 text-center">
-      <div id="customAlertIcon" class="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mx-auto text-xl">
-        <i class="fa-solid fa-circle-info"></i>
+          </div>
+        </div>
+
       </div>
-      <h3 id="customAlertTitle" class="font-bold text-slate-900 text-base">系統提示</h3>
-      <p id="customAlertMsg" class="text-xs text-slate-600 leading-relaxed"></p>
-      <button onclick="closeCustomAlert()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg text-xs font-bold transition">
-        好，我知道了
-      </button>
+
+      <!-- Modal Footer -->
+      <div class="bg-slate-100 border-t-2 border-slate-300 p-3 flex justify-end">
+        <button onclick="closeAdminModal()" class="comic-box-sm bg-amber-400 hover:bg-amber-500 text-slate-900 font-black px-5 py-2 rounded-xl comic-btn text-sm">
+          完成返回遊戲
+        </button>
+      </div>
+
     </div>
   </div>
 
-  <!-- 新增 / 編輯學生彈窗 Modal -->
-  <div id="studentEditModal" class="no-print fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
-    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
-      <div class="flex justify-between items-center border-b pb-3">
-        <h3 id="studentModalTitle" class="font-bold text-base md:text-lg text-slate-900 flex items-center gap-2">
-          <i class="fa-solid fa-user-pen text-blue-600"></i>
-          編輯學生收費資料
-        </h3>
-        <button onclick="closeStudentModal()" class="text-slate-400 hover:text-slate-600 text-lg">&times;</button>
-      </div>
+  <audio id="customAudioElement" loop preload="none"></audio>
 
-      <form id="studentEditForm" onsubmit="handleSaveStudent(event)" class="space-y-3 text-xs">
-        <input type="hidden" id="editStudentIndex" value="">
+  <script>
+    /* Synthetic Sound System (Web Audio API) */
+    let audioCtx = null;
+    let soundEnabled = true;
 
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="block font-bold text-slate-700 mb-1">座號：</label>
-            <input type="number" id="modalStudentSeat" required min="1" max="99" class="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 font-mono">
-          </div>
-          <div>
-            <label class="block font-bold text-slate-700 mb-1">學生姓名：</label>
-            <input type="text" id="modalStudentName" required placeholder="例如：陳大明" class="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 font-medium">
-          </div>
-        </div>
-
-        <div>
-          <label class="block font-bold text-slate-700 mb-1">學生身分別 (影響減免與補助)：</label>
-          <select id="modalStudentCategory" class="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 font-medium text-slate-800">
-            <option value="一般學生">一般學生 (全額繳交)</option>
-            <option value="有弟妹在校/同仁子女">有弟妹在校/同仁子女 (免收家長會費 $100)</option>
-            <option value="低收入戶學生">低收入戶學生 (免會費、免團保費)</option>
-            <option value="原住民學生">原住民學生 (免收學生團保費 $266)</option>
-            <option value="身障學生(輕/中度)">身障學生(輕/中度) (先繳後發補助款 $316)</option>
-            <option value="身障/子女(重度極重度)">身障/子女(重度極重度) (免收學生團保費 $266)</option>
-          </select>
-        </div>
-
-        <!-- 自購教材細項金額設定 (個別微調) -->
-        <div class="bg-purple-50 p-3 rounded-xl border border-purple-200 space-y-2">
-          <span class="font-bold text-purple-900 block">此學生自購項目金額 (可個別設定)：</span>
-          <div class="space-y-1.5">
-            <div class="flex items-center justify-between">
-              <span id="modalCustomLabel1" class="text-purple-800 truncate pr-2">項目1</span>
-              <div class="flex items-center shrink-0">
-                <span class="text-slate-500 mr-1">$</span>
-                <input type="number" id="modalCustomPrice1" min="0" class="w-20 border border-slate-300 rounded p-1 text-right font-mono">
-              </div>
-            </div>
-            <div class="flex items-center justify-between">
-              <span id="modalCustomLabel2" class="text-purple-800 truncate pr-2">項目2</span>
-              <div class="flex items-center shrink-0">
-                <span class="text-slate-500 mr-1">$</span>
-                <input type="number" id="modalCustomPrice2" min="0" class="w-20 border border-slate-300 rounded p-1 text-right font-mono">
-              </div>
-            </div>
-            <div class="flex items-center justify-between">
-              <span id="modalCustomLabel3" class="text-purple-800 truncate pr-2">項目3</span>
-              <div class="flex items-center shrink-0">
-                <span class="text-slate-500 mr-1">$</span>
-                <input type="number" id="modalCustomPrice3" min="0" class="w-20 border border-slate-300 rounded p-1 text-right font-mono">
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <label class="block font-bold text-slate-700 mb-1">繳費狀態：</label>
-          <select id="modalStudentPaid" class="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500">
-            <option value="false">○ 尚未繳費</option>
-            <option value="true">● 已完成繳費</option>
-          </select>
-        </div>
-
-        <div class="flex justify-end gap-2 pt-3 border-t">
-          <button type="button" onclick="closeStudentModal()" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg font-medium text-slate-700 transition">
-            取消
-          </button>
-          <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold transition flex items-center gap-1.5 shadow">
-            <i class="fa-solid fa-circle-check"></i> 儲存資料
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- Google 試算表匯入彈窗 Modal (支援網址與Ctrl+V直接貼上) -->
-<!-- ... existing code ... -->
-    // 年級變更處理
-    function handleGradeChange() {
-      renderAll();
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
     }
 
-    // 切換繳費狀態
-    function togglePaidStatus(index) {
-      studentData[index].paid = !studentData[index].paid;
-      renderAll();
+    function toggleAudio() {
+      soundEnabled = !soundEnabled;
+      const btn = document.getElementById('soundToggleBtn');
+      btn.innerText = soundEnabled ? '🔊' : '🔇';
+      btn.classList.toggle('bg-gray-300', !soundEnabled);
+      btn.classList.toggle('bg-emerald-300', soundEnabled);
     }
 
-    // 開啟新增 / 編輯學生彈窗 (index 為 null 代表新增)
-    function openStudentModal(index = null) {
-      onCustomItemConfigChange(); // 確保項目名稱同步
+    function playTone(freq, type = 'sine', duration = 0.15, gainVal = 0.2) {
+      if (!soundEnabled) return;
+      try {
+        initAudio();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(gainVal, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (e) {
+        console.error("Audio playback error:", e);
+      }
+    }
 
-      const modal = document.getElementById('studentEditModal');
-      const title = document.getElementById('studentModalTitle');
-      const idxInput = document.getElementById('editStudentIndex');
-      const seatInput = document.getElementById('modalStudentSeat');
-      const nameInput = document.getElementById('modalStudentName');
-      const catSelect = document.getElementById('modalStudentCategory');
-      const paidSelect = document.getElementById('modalStudentPaid');
+    function playSoundEffect(name) {
+      if (!soundEnabled) return;
+      initAudio();
+      
+      if (name === 'pop') {
+        playTone(600, 'sine', 0.08, 0.25);
+      } else if (name === 'win') {
+        setTimeout(() => playTone(523.25, 'triangle', 0.12, 0.3), 0);
+        setTimeout(() => playTone(659.25, 'triangle', 0.12, 0.3), 120);
+        setTimeout(() => playTone(783.99, 'triangle', 0.14, 0.3), 240);
+        setTimeout(() => playTone(1046.50, 'triangle', 0.35, 0.4), 380);
+      } else if (name === 'lose') {
+        setTimeout(() => playTone(440, 'sawtooth', 0.15, 0.18), 0);
+        setTimeout(() => playTone(370, 'sawtooth', 0.15, 0.2), 150);
+        setTimeout(() => playTone(311.13, 'sawtooth', 0.3, 0.22), 300);
+      } else if (name === 'draw') {
+        playTone(380, 'sine', 0.15, 0.25);
+        setTimeout(() => playTone(380, 'sine', 0.15, 0.25), 160);
+      } else if (name === 'drumroll') {
+        for (let i = 0; i < 4; i++) {
+          setTimeout(() => playTone(180 + i * 20, 'square', 0.05, 0.1), i * 90);
+        }
+      }
+    }
 
-      const l1 = document.getElementById('modalCustomLabel1');
-      const l2 = document.getElementById('modalCustomLabel2');
-      const l3 = document.getElementById('modalCustomLabel3');
-      const p1 = document.getElementById('modalCustomPrice1');
-      const p2 = document.getElementById('modalCustomPrice2');
-      const p3 = document.getElementById('modalCustomPrice3');
+    /* ==========================================================
+       BACKGROUND MUSIC (BGM) SYSTEM
+       1. Synth Anime BGM: Procedural cheerful looping melody
+       2. Custom Audio URL player
+    ========================================================== */
+    let isBgmPlaying = false;
+    let bgmMode = 'synth'; // 'synth' or 'custom'
+    let bgmMasterGain = null;
+    let synthBgmInterval = null;
+    let bgmVolume = 0.2;
 
-      l1.innerText = `1. ${globalCustomConfig[0].name}：`;
-      l2.innerText = `2. ${globalCustomConfig[1].name}：`;
-      l3.innerText = `3. ${globalCustomConfig[2].name}：`;
+    // Cheerful anime playful melody notes (frequencies in Hz)
+    const BGM_MELODY = [
+      { f: 523.25, d: 0.18 }, // C5
+      { f: 587.33, d: 0.18 }, // D5
+      { f: 659.25, d: 0.22 }, // E5
+      { f: 783.99, d: 0.22 }, // G5
+      { f: 659.25, d: 0.18 }, // E5
+      { f: 783.99, d: 0.30 }, // G5
+      { f: 880.00, d: 0.20 }, // A5
+      { f: 783.99, d: 0.35 }, // G5
+      { f: 659.25, d: 0.18 }, // E5
+      { f: 587.33, d: 0.18 }, // D5
+      { f: 523.25, d: 0.22 }, // C5
+      { f: 440.00, d: 0.25 }, // A4
+      { f: 523.25, d: 0.35 }, // C5
+      { f: 587.33, d: 0.20 }, // D5
+      { f: 523.25, d: 0.40 }  // C5
+    ];
+    let bgmNoteIndex = 0;
 
-      if (index === null || index === undefined) {
-        // 新增模式
-        title.innerHTML = `<i class="fa-solid fa-user-plus text-blue-600"></i> 新增學生收費資料`;
-        idxInput.value = "";
-        const nextSeat = studentData.length > 0 ? Math.max(...studentData.map(s => s.seat)) + 1 : 1;
-        seatInput.value = nextSeat;
-        nameInput.value = "";
-        catSelect.value = "一般學生";
-        p1.value = globalCustomConfig[0].price;
-        p2.value = globalCustomConfig[1].price;
-        p3.value = globalCustomConfig[2].price;
-        paidSelect.value = "false";
-      } else {
-        // 編輯模式
-        const s = studentData[index];
-        title.innerHTML = `<i class="fa-solid fa-user-pen text-blue-600"></i> 編輯學生：${escapeHtml(s.name)} (座號 ${s.seat})`;
-        idxInput.value = index;
-        seatInput.value = s.seat;
-        nameInput.value = s.name;
-        catSelect.value = s.category;
-        p1.value = Number(s.customItems?.[0]?.amount ?? globalCustomConfig[0].price);
-        p2.value = Number(s.customItems?.[1]?.amount ?? globalCustomConfig[1].price);
-        p3.value = Number(s.customItems?.[2]?.amount ?? globalCustomConfig[2].price);
-        paidSelect.value = s.paid ? "true" : "false";
+    function initBgmGain() {
+      if (!audioCtx) initAudio();
+      if (!bgmMasterGain) {
+        bgmMasterGain = audioCtx.createGain();
+        bgmMasterGain.gain.setValueAtTime(bgmVolume, audioCtx.currentTime);
+        bgmMasterGain.connect(audioCtx.destination);
+      }
+    }
+
+    function playBgmNote() {
+      if (!isBgmPlaying || bgmMode !== 'synth') return;
+      initBgmGain();
+      const note = BGM_MELODY[bgmNoteIndex];
+      const osc = audioCtx.createOscillator();
+      const noteGain = audioCtx.createGain();
+
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(note.f, audioCtx.currentTime);
+
+      noteGain.gain.setValueAtTime(0.001, audioCtx.currentTime);
+      noteGain.gain.linearRampToValueAtTime(0.2, audioCtx.currentTime + 0.02);
+      noteGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + note.d);
+
+      osc.connect(noteGain);
+      noteGain.connect(bgmMasterGain);
+
+      osc.start();
+      osc.stop(audioCtx.currentTime + note.d);
+
+      // Bass accompaniment on every 3rd note
+      if (bgmNoteIndex % 3 === 0) {
+        const bassOsc = audioCtx.createOscillator();
+        const bassGain = audioCtx.createGain();
+        bassOsc.type = 'sine';
+        bassOsc.frequency.setValueAtTime(note.f / 4, audioCtx.currentTime);
+        bassGain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+        bassGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.25);
+        bassOsc.connect(bassGain);
+        bassGain.connect(bgmMasterGain);
+        bassOsc.start();
+        bassOsc.stop(audioCtx.currentTime + 0.25);
       }
 
-      modal.classList.remove('hidden');
-      nameInput.focus();
+      bgmNoteIndex = (bgmNoteIndex + 1) % BGM_MELODY.length;
     }
 
-    function closeStudentModal() {
-      document.getElementById('studentEditModal').classList.add('hidden');
+    function startBGM() {
+      initAudio();
+      initBgmGain();
+      isBgmPlaying = true;
+      updateBgmUI();
+
+      if (bgmMode === 'synth') {
+        const customAudio = document.getElementById('customAudioElement');
+        customAudio.pause();
+        if (synthBgmInterval) clearInterval(synthBgmInterval);
+        synthBgmInterval = setInterval(playBgmNote, 240);
+      } else {
+        if (synthBgmInterval) clearInterval(synthBgmInterval);
+        const url = document.getElementById('customBgmUrlInput').value.trim();
+        const customAudio = document.getElementById('customAudioElement');
+        if (url) {
+          if (customAudio.src !== url) customAudio.src = url;
+          customAudio.volume = bgmVolume;
+          customAudio.play().catch(e => console.log('Audio autoplay prevented:', e));
+        }
+      }
     }
 
-    // 儲存學生 (新增或修改)
-    function handleSaveStudent(e) {
-      e.preventDefault();
-      const idxStr = document.getElementById('editStudentIndex').value;
-      const seat = parseInt(document.getElementById('modalStudentSeat').value, 10);
-      const name = document.getElementById('modalStudentName').value.trim();
-      const category = document.getElementById('modalStudentCategory').value;
-      const isPaid = document.getElementById('modalStudentPaid').value === "true";
+    function stopBGM() {
+      isBgmPlaying = false;
+      if (synthBgmInterval) clearInterval(synthBgmInterval);
+      const customAudio = document.getElementById('customAudioElement');
+      customAudio.pause();
+      updateBgmUI();
+    }
 
-      const p1 = parseInt(document.getElementById('modalCustomPrice1').value, 10) || 0;
-      const p2 = parseInt(document.getElementById('modalCustomPrice2').value, 10) || 0;
-      const p3 = parseInt(document.getElementById('modalCustomPrice3').value, 10) || 0;
+    function toggleBGM() {
+      if (isBgmPlaying) {
+        stopBGM();
+      } else {
+        startBGM();
+      }
+    }
 
-      if (!name) {
-        showCustomAlert("提示", "請輸入學生姓名！", true);
+    function updateBgmUI() {
+      const icon = document.getElementById('bgmIcon');
+      const text = document.getElementById('bgmStatusText');
+      const btn = document.getElementById('bgmToggleBtn');
+      if (isBgmPlaying) {
+        icon.innerText = '🎶';
+        text.innerText = 'BGM: 開';
+        btn.classList.remove('bg-purple-400');
+        btn.classList.add('bg-emerald-500');
+      } else {
+        icon.innerText = '🎵';
+        text.innerText = 'BGM: 關';
+        btn.classList.remove('bg-emerald-500');
+        btn.classList.add('bg-purple-400');
+      }
+    }
+
+    function changeBgmMode(mode) {
+      bgmMode = mode;
+      if (isBgmPlaying) {
+        startBGM();
+      }
+    }
+
+    function updateBgmVolume(val) {
+      bgmVolume = parseFloat(val);
+      document.getElementById('bgmVolumeLabel').innerText = Math.round(bgmVolume * 100) + '%';
+      if (bgmMasterGain) {
+        bgmMasterGain.gain.setValueAtTime(bgmVolume, audioCtx.currentTime);
+      }
+      const customAudio = document.getElementById('customAudioElement');
+      customAudio.volume = bgmVolume;
+    }
+
+    /* ==========================================================
+       CHARACTER ROSTER DATA & STORAGE MANAGEMENT
+    ========================================================== */
+    const DEFAULT_CHARACTERS = [
+      {
+        id: "shinchan",
+        name: "野原新之助",
+        tag: "春日部之光",
+        color: "#EF4444",
+        intro: "「哦呵呵呵～大姐姐，要不要跟我小新猜一把呀？」",
+        winQuote: "「動感光波～嗶嗶嗶！我又贏了～你還差得遠呢！」",
+        loseQuote: "「嗚哇～小白快來救我！輸掉了啦～真是的！」",
+        drawQuote: "「哎呀？跟人家心有靈犀耶～難道你迷上我了嗎？」",
+        avatarType: "svg_shinchan"
+      },
+      {
+        id: "kazama",
+        name: "風間 徹",
+        tag: "英才菁英",
+        color: "#3B82F6",
+        intro: "「哼！身為補習班尖子生的我，勝率是用機率精密計算過的！」",
+        winQuote: "「看到了嗎？這就是邏輯思考與貴族氣質的勝利！」",
+        loseQuote: "「怎、怎麼可能！我的博弈演算法哪裡出錯了？！」",
+        drawQuote: "「平手嗎？有兩下子嘛，不過下一拳我可不會大意了！」",
+        avatarType: "svg_kazama"
+      },
+      {
+        id: "nene",
+        name: "櫻田 妮妮",
+        tag: "超真實扮家家酒",
+        color: "#EC4899",
+        intro: "「大家～來玩猜拳扮演幸福又危險的家庭遊戲吧♪」",
+        winQuote: "「耶～！輸的人要罰當只會喝啤酒的中年丈夫喔！」",
+        loseQuote: "「可惡……兔子呢？我的幸福兔子在哪裡？！(握拳)」",
+        drawQuote: "「哎呀平手了～該不會下一段婚姻危機要出現了吧？」",
+        avatarType: "svg_nene"
+      },
+      {
+        id: "bochan",
+        name: "阿呆",
+        tag: "深不可測神秘奇石",
+        color: "#10B981",
+        intro: "「呆～！今天撿到形狀像拳頭的奇石……猜拳吧。」",
+        winQuote: "「呆～！鼻涕螺旋旋轉…石頭勝利…呆～」",
+        loseQuote: "「呆～鼻涕掉下去了……下次換我贏。」",
+        drawQuote: "「呆～一樣的頻率…我們是好朋友了。」",
+        avatarType: "svg_bochan"
+      },
+      {
+        id: "masao",
+        name: "佐藤 正男",
+        tag: "飯糰頭愛哭鬼",
+        color: "#F59E0B",
+        intro: "「嗚…請不要欺負我喔，我只會出一點點拳……」",
+        winQuote: "「咦！我贏了嗎？！哇～太好了！我不是愛哭鬼了！」",
+        loseQuote: "「哇啊啊啊！小新又笑我！妮妮不要逼我扮家家酒啦～(大哭)」",
+        drawQuote: "「呼…好險沒輸，再給我一次勇氣吧！」",
+        avatarType: "svg_masao"
+      },
+      {
+        id: "monk_master",
+        name: "金杖法師・玄奘",
+        tag: "特邀嘉賓 ★ 佛光普照",
+        color: "#DC2626",
+        intro: "「貧僧手持九環錫杖，願與檀越以拳會友，阿彌陀佛！」",
+        winQuote: "「善哉善哉！此乃金剛不壞之拳，施主承讓了！」",
+        loseQuote: "「色即是空，空即是色…貧僧修行尚淺，佩服佩服！」",
+        drawQuote: "「心如止水，雙方不分軒輊，此乃莫大因緣！」",
+        avatarType: "svg_monk"
+      },
+      {
+        id: "hoodie_guy",
+        name: "潮流黑帽T酷哥",
+        tag: "特邀嘉賓 ★ 街頭潮人",
+        color: "#0F172A",
+        intro: "「猜拳就像街舞跟滑板，節奏感很重要。準備好接招了嗎？」",
+        winQuote: "「Nice Game！這招連小新的屁屁舞都擋不住喔～」",
+        loseQuote: "「噢！被抓到空隙了，你這拳出的挺有型啊！」",
+        drawQuote: "「同步率100%！看來你跟我一樣很有潮流默契喔。」",
+        avatarType: "svg_hoodie"
+      }
+    ];
+
+    let characters = [];
+
+    // Load from LocalStorage or defaults
+    function loadCharacters() {
+      const stored = localStorage.getItem('shinchan_game_characters_v2');
+      if (stored) {
+        try {
+          characters = JSON.parse(stored);
+        } catch (e) {
+          characters = JSON.parse(JSON.stringify(DEFAULT_CHARACTERS));
+        }
+      } else {
+        characters = JSON.parse(JSON.stringify(DEFAULT_CHARACTERS));
+      }
+    }
+
+    function saveCharacters() {
+      localStorage.setItem('shinchan_game_characters_v2', JSON.stringify(characters));
+    }
+
+    function restoreDefaultCharacters() {
+      if (confirm('確定要還原成初始角色設定嗎？您新增與修改的內容將會重置。')) {
+        characters = JSON.parse(JSON.stringify(DEFAULT_CHARACTERS));
+        saveCharacters();
+        renderAdminCharacterList();
+        renderRoster();
+        updateOpponentView();
+        playSoundEffect('pop');
+      }
+    }
+
+    // Avatar SVG templates
+    const SVG_TEMPLATES = {
+      svg_shinchan: () => `
+        <svg viewBox="0 0 140 140" class="w-full h-full">
+          <circle cx="70" cy="70" r="64" fill="#FEE2E2" stroke="#263238" stroke-width="4"/>
+          <path d="M 32 80 C 25 50, 48 30, 80 30 C 112 30, 118 60, 110 82 C 105 105, 45 105, 32 80 Z" fill="#FFDFC4" stroke="#263238" stroke-width="4.5"/>
+          <path d="M 40 46 Q 52 38 64 45" stroke="#1E293B" stroke-width="8" stroke-linecap="round"/>
+          <path d="M 80 46 Q 92 38 104 45" stroke="#1E293B" stroke-width="8" stroke-linecap="round"/>
+          <circle cx="53" cy="58" r="7" fill="#0F172A"/>
+          <circle cx="51" cy="56" r="2.5" fill="#FFFFFF"/>
+          <circle cx="91" cy="58" r="7" fill="#0F172A"/>
+          <circle cx="89" cy="56" r="2.5" fill="#FFFFFF"/>
+          <ellipse cx="40" cy="72" rx="9" ry="6" fill="#F43F5E" opacity="0.6"/>
+          <ellipse cx="104" cy="72" rx="9" ry="6" fill="#F43F5E" opacity="0.6"/>
+          <path d="M 64 76 Q 72 88 80 76" stroke="#BE123C" stroke-width="4.5" fill="#E11D48" stroke-linecap="round"/>
+          <path d="M 35 110 Q 70 125 105 110 L 115 140 L 25 140 Z" fill="#EF4444" stroke="#263238" stroke-width="4"/>
+          <path d="M 60 115 L 80 115" stroke="#FDE047" stroke-width="4"/>
+        </svg>`,
+      svg_kazama: () => `
+        <svg viewBox="0 0 140 140" class="w-full h-full">
+          <circle cx="70" cy="70" r="64" fill="#DBEAFE" stroke="#263238" stroke-width="4"/>
+          <ellipse cx="70" cy="75" rx="38" ry="34" fill="#FFE2C6" stroke="#263238" stroke-width="4"/>
+          <path d="M 32 65 C 28 35, 55 20, 78 22 C 95 24, 112 36, 110 60 C 100 55, 95 45, 75 44 C 55 43, 40 55, 32 65 Z" fill="#1E3A8A" stroke="#263238" stroke-width="4"/>
+          <path d="M 45 52 Q 55 48 65 54" stroke="#1E3A8A" stroke-width="4" stroke-linecap="round"/>
+          <path d="M 80 54 Q 90 48 100 52" stroke="#1E3A8A" stroke-width="4" stroke-linecap="round"/>
+          <ellipse cx="56" cy="62" rx="4.5" ry="6" fill="#1E293B"/>
+          <circle cx="55" cy="60" r="1.8" fill="#FFF"/>
+          <ellipse cx="88" cy="62" rx="4.5" ry="6" fill="#1E293B"/>
+          <circle cx="87" cy="60" r="1.8" fill="#FFF"/>
+          <path d="M 68 80 Q 75 86 84 79" stroke="#263238" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+          <path d="M 40 108 L 100 108 L 105 140 L 35 140 Z" fill="#3B82F6" stroke="#263238" stroke-width="4"/>
+          <polygon points="70,110 64,124 76,124" fill="#EF4444"/>
+        </svg>`,
+      svg_nene: () => `
+        <svg viewBox="0 0 140 140" class="w-full h-full">
+          <circle cx="70" cy="70" r="64" fill="#FCE7F3" stroke="#263238" stroke-width="4"/>
+          <ellipse cx="28" cy="60" rx="12" ry="16" fill="#B45309" stroke="#263238" stroke-width="4"/>
+          <ellipse cx="112" cy="60" rx="12" ry="16" fill="#B45309" stroke="#263238" stroke-width="4"/>
+          <circle cx="70" cy="74" r="36" fill="#FFDFC4" stroke="#263238" stroke-width="4"/>
+          <path d="M 38 56 Q 70 42 102 56 Q 70 30 38 56 Z" fill="#B45309" stroke="#263238" stroke-width="3.5"/>
+          <circle cx="54" cy="68" r="6" fill="#1E293B"/>
+          <circle cx="52" cy="66" r="2" fill="#FFF"/>
+          <circle cx="86" cy="68" r="6" fill="#1E293B"/>
+          <circle cx="84" cy="66" r="2" fill="#FFF"/>
+          <circle cx="44" cy="78" r="6" fill="#F472B6" opacity="0.6"/>
+          <circle cx="96" cy="78" r="6" fill="#F472B6" opacity="0.6"/>
+          <path d="M 64 82 Q 70 90 76 82 Z" fill="#E11D48" stroke="#263238" stroke-width="3"/>
+          <path d="M 40 108 L 100 108 L 108 140 L 32 140 Z" fill="#F472B6" stroke="#263238" stroke-width="4"/>
+        </svg>`,
+      svg_bochan: () => `
+        <svg viewBox="0 0 140 140" class="w-full h-full">
+          <circle cx="70" cy="70" r="64" fill="#D1FAE5" stroke="#263238" stroke-width="4"/>
+          <path d="M 38 78 C 34 40, 52 26, 70 26 C 88 26, 106 40, 102 78 C 98 106, 42 106, 38 78 Z" fill="#FFE0B2" stroke="#263238" stroke-width="4.5"/>
+          <path d="M 44 38 Q 70 20 96 38" stroke="#334155" stroke-width="7" stroke-linecap="round"/>
+          <circle cx="56" cy="62" r="3.5" fill="#1E293B"/>
+          <circle cx="84" cy="62" r="3.5" fill="#1E293B"/>
+          <ellipse cx="70" cy="78" rx="3" ry="1.5" fill="#263238"/>
+          <path d="M 70 70 Q 76 85 70 98 Q 66 104 70 106 Q 74 104 72 98 Z" fill="#67E8F9" stroke="#0891B2" stroke-width="2.5" opacity="0.9"/>
+          <circle cx="70" cy="103" r="2" fill="#E0F2FE"/>
+          <path d="M 38 110 L 102 110 L 108 140 L 32 140 Z" fill="#10B981" stroke="#263238" stroke-width="4"/>
+        </svg>`,
+      svg_masao: () => `
+        <svg viewBox="0 0 140 140" class="w-full h-full">
+          <circle cx="70" cy="70" r="64" fill="#FEF3C7" stroke="#263238" stroke-width="4"/>
+          <path d="M 70 28 Q 112 75 102 96 Q 70 108 38 96 Q 28 75 70 28 Z" fill="#FFE2C6" stroke="#263238" stroke-width="4.5"/>
+          <circle cx="70" cy="36" r="1.5" fill="#475569"/>
+          <circle cx="64" cy="40" r="1.5" fill="#475569"/>
+          <circle cx="76" cy="40" r="1.5" fill="#475569"/>
+          <path d="M 48 56 Q 56 60 62 55" stroke="#263238" stroke-width="3.5" fill="none"/>
+          <path d="M 78 55 Q 84 60 92 56" stroke="#263238" stroke-width="3.5" fill="none"/>
+          <circle cx="56" cy="68" r="6" fill="#1E293B"/>
+          <circle cx="54" cy="65" r="2.5" fill="#FFF"/>
+          <circle cx="84" cy="68" r="6" fill="#1E293B"/>
+          <circle cx="82" cy="65" r="2.5" fill="#FFF"/>
+          <path d="M 62 86 Q 70 82 78 86" stroke="#263238" stroke-width="3.5" fill="none"/>
+          <path d="M 38 108 L 102 108 L 108 140 L 32 140 Z" fill="#F59E0B" stroke="#263238" stroke-width="4"/>
+        </svg>`,
+      svg_monk: () => `
+        <svg viewBox="0 0 140 140" class="w-full h-full">
+          <circle cx="70" cy="70" r="64" fill="#FEF2F2" stroke="#263238" stroke-width="4"/>
+          <circle cx="70" cy="60" r="48" fill="#FDE047" opacity="0.35"/>
+          <g transform="translate(14, 18)">
+            <rect x="0" y="24" width="6" height="95" fill="#D97706" stroke="#263238" stroke-width="2.5" rx="2"/>
+            <path d="M 3 2 Q -10 12 3 24 Q 16 12 3 2 Z" fill="#FBBF24" stroke="#263238" stroke-width="2.5"/>
+            <circle cx="3" cy="13" r="4" fill="#DC2626" stroke="#263238" stroke-width="1.5"/>
+            <circle cx="-5" cy="16" r="3" fill="#FCD34D" stroke="#263238" stroke-width="1.5"/>
+            <circle cx="11" cy="16" r="3" fill="#FCD34D" stroke="#263238" stroke-width="1.5"/>
+          </g>
+          <path d="M 42 74 C 40 40, 52 28, 76 28 C 100 28, 112 40, 110 74 C 108 98, 44 98, 42 74 Z" fill="#FFDFC4" stroke="#263238" stroke-width="4.5"/>
+          <path d="M 44 42 C 55 26, 95 26, 108 42" stroke="#1E293B" stroke-width="7" stroke-linecap="round"/>
+          <rect x="52" y="52" width="18" height="11" rx="3" fill="#E0F2FE" fill-opacity="0.4" stroke="#475569" stroke-width="2.5"/>
+          <rect x="78" y="52" width="18" height="11" rx="3" fill="#E0F2FE" fill-opacity="0.4" stroke="#475569" stroke-width="2.5"/>
+          <line x1="70" y1="57" x2="78" y2="57" stroke="#475569" stroke-width="2.5"/>
+          <circle cx="61" cy="57" r="3.5" fill="#1E293B"/>
+          <circle cx="60" cy="55" r="1.2" fill="#FFF"/>
+          <circle cx="87" cy="57" r="3.5" fill="#1E293B"/>
+          <circle cx="86" cy="55" r="1.2" fill="#FFF"/>
+          <path d="M 50 48 L 68 47" stroke="#1E293B" stroke-width="3.5" stroke-linecap="round"/>
+          <path d="M 80 47 L 98 48" stroke="#1E293B" stroke-width="3.5" stroke-linecap="round"/>
+          <path d="M 68 76 Q 74 81 80 76" stroke="#263238" stroke-width="3" fill="none" stroke-linecap="round"/>
+          <path d="M 38 102 L 112 102 L 120 140 L 30 140 Z" fill="#991B1B" stroke="#263238" stroke-width="4"/>
+          <path d="M 45 102 L 85 140 L 68 140 L 38 114 Z" fill="#F59E0B" stroke="#263238" stroke-width="2"/>
+        </svg>`,
+      svg_hoodie: () => `
+        <svg viewBox="0 0 140 140" class="w-full h-full">
+          <circle cx="70" cy="70" r="64" fill="#F1F5F9" stroke="#263238" stroke-width="4"/>
+          <path d="M 30 65 C 24 35, 50 18, 70 18 C 95 18, 116 34, 110 68 C 105 68, 102 50, 70 42 C 45 42, 38 58, 30 65 Z" fill="#1E293B" stroke="#263238" stroke-width="4"/>
+          <path d="M 28 58 Q 20 72 32 82 Q 36 72 34 60" fill="#1E293B" stroke="#263238" stroke-width="3"/>
+          <path d="M 112 58 Q 120 72 108 82 Q 104 72 106 60" fill="#1E293B" stroke="#263238" stroke-width="3"/>
+          <path d="M 38 72 C 38 46, 50 36, 70 36 C 90 36, 102 46, 102 72 C 102 96, 38 96, 38 72 Z" fill="#FFE0B2" stroke="#263238" stroke-width="4.5"/>
+          <circle cx="56" cy="62" r="10" fill="#F8FAFC" fill-opacity="0.3" stroke="#334155" stroke-width="2.5"/>
+          <circle cx="84" cy="62" r="10" fill="#F8FAFC" fill-opacity="0.3" stroke="#334155" stroke-width="2.5"/>
+          <line x1="66" y1="62" x2="74" y2="62" stroke="#334155" stroke-width="2.5"/>
+          <circle cx="57" cy="62" r="3.5" fill="#0F172A"/>
+          <circle cx="56" cy="60" r="1.2" fill="#FFF"/>
+          <circle cx="83" cy="62" r="3.5" fill="#0F172A"/>
+          <circle cx="82" cy="60" r="1.2" fill="#FFF"/>
+          <path d="M 46 51 Q 56 48 66 51" stroke="#0F172A" stroke-width="3.5" stroke-linecap="round"/>
+          <path d="M 74 51 Q 84 48 94 51" stroke="#0F172A" stroke-width="3.5" stroke-linecap="round"/>
+          <path d="M 66 79 Q 71 83 78 78" stroke="#1E293B" stroke-width="3" fill="none" stroke-linecap="round"/>
+          <path d="M 34 102 Q 70 94 106 102 L 118 140 L 22 140 Z" fill="#0F172A" stroke="#263238" stroke-width="4"/>
+          <path d="M 86 112 Q 94 115 100 110 Q 94 119 86 115 Z" fill="#FFFFFF"/>
+        </svg>`,
+      preset_star: () => `
+        <svg viewBox="0 0 140 140" class="w-full h-full">
+          <circle cx="70" cy="70" r="64" fill="#FEF08A" stroke="#263238" stroke-width="4"/>
+          <!-- Superhero Star Mask -->
+          <polygon points="70,18 84,48 116,52 92,74 98,106 70,90 42,106 48,74 24,52 56,48" fill="#F59E0B" stroke="#263238" stroke-width="4"/>
+          <circle cx="58" cy="64" r="5" fill="#1E293B"/>
+          <circle cx="82" cy="64" r="5" fill="#1E293B"/>
+          <circle cx="56" cy="62" r="1.5" fill="#FFF"/>
+          <circle cx="80" cy="62" r="1.5" fill="#FFF"/>
+          <path d="M 62 82 Q 70 90 78 82" stroke="#263238" stroke-width="3.5" fill="none"/>
+        </svg>`,
+      preset_chocobi: () => `
+        <svg viewBox="0 0 140 140" class="w-full h-full">
+          <circle cx="70" cy="70" r="64" fill="#FBCFE8" stroke="#263238" stroke-width="4"/>
+          <!-- Pink Croc Head -->
+          <path d="M 40 85 C 30 50, 60 25, 90 35 C 115 45, 115 80, 100 95 C 75 105, 45 100, 40 85 Z" fill="#EC4899" stroke="#263238" stroke-width="4"/>
+          <!-- Big Croc Eye -->
+          <circle cx="58" cy="46" r="12" fill="#FFFFFF" stroke="#263238" stroke-width="3.5"/>
+          <circle cx="58" cy="46" r="5" fill="#0F172A"/>
+          <!-- Sharp Croc Teeth -->
+          <polygon points="70,82 76,72 82,82 88,72 94,82" fill="#FFFFFF" stroke="#263238" stroke-width="2"/>
+          <path d="M 60 82 L 105 82" stroke="#263238" stroke-width="3"/>
+        </svg>`
+    };
+
+    function renderCharacterAvatar(char) {
+      if (char.avatarType === 'custom_url' && char.avatarUrl) {
+        return `<img src="${char.avatarUrl}" alt="${char.name}" class="w-full h-full object-cover rounded-full" onerror="this.src='https://placehold.co/140x140/fbcfe8/be185d?text=${encodeURIComponent(char.name)}'">`;
+      }
+      if (SVG_TEMPLATES[char.avatarType]) {
+        return SVG_TEMPLATES[char.avatarType]();
+      }
+      return SVG_TEMPLATES.preset_star();
+    }
+
+    let currentOpponentIndex = 0;
+    let chocobiScore = 0;
+    let winStreak = 0;
+    let isPlayingRound = false;
+
+    const HANDS = {
+      rock: { label: '石頭', emoji: '✊', beats: 'scissors' },
+      scissors: { label: '剪刀', emoji: '✌️', beats: 'paper' },
+      paper: { label: '布', emoji: '🖐️', beats: 'rock' }
+    };
+
+    function renderRoster() {
+      const rosterContainer = document.getElementById('characterRoster');
+      rosterContainer.innerHTML = '';
+
+      characters.forEach((char, index) => {
+        const isSelected = index === currentOpponentIndex;
+        const btn = document.createElement('button');
+        btn.onclick = () => selectCharacter(index);
+        btn.className = `flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-2xl comic-box-sm transition-all duration-200 ${
+          isSelected 
+            ? 'bg-rose-500 text-white scale-105 ring-2 ring-rose-300 shadow-md' 
+            : 'bg-white text-slate-800 hover:bg-amber-100'
+        }`;
+
+        btn.innerHTML = `
+          <div class="w-8 h-8 rounded-full overflow-hidden bg-white border border-slate-700 flex-shrink-0">
+            ${renderCharacterAvatar(char)}
+          </div>
+          <div class="text-left">
+            <div class="text-xs font-black leading-tight max-w-[90px] truncate">${char.name}</div>
+            <div class="text-[9px] opacity-80 max-w-[90px] truncate">${char.tag || '向日葵班'}</div>
+          </div>
+        `;
+        rosterContainer.appendChild(btn);
+      });
+    }
+
+    function selectCharacter(index) {
+      if (isPlayingRound) return;
+      currentOpponentIndex = index;
+      renderRoster();
+      updateOpponentView();
+      playSoundEffect('pop');
+    }
+
+    function updateOpponentView() {
+      if (characters.length === 0) return;
+      if (currentOpponentIndex >= characters.length) currentOpponentIndex = 0;
+      
+      const char = characters[currentOpponentIndex];
+      document.getElementById('opponentName').innerText = char.name;
+      document.getElementById('opponentTag').innerText = char.tag || '神秘對手';
+      document.getElementById('dialogueBox').innerText = char.intro;
+      document.getElementById('opponentAvatarSlot').innerHTML = renderCharacterAvatar(char);
+      
+      const badge = document.getElementById('opponentHandBadge');
+      badge.classList.add('scale-0');
+      document.getElementById('playerHandDisplay').innerText = '❓';
+      document.getElementById('playerStateText').innerText = '請選出拳！';
+      
+      const banner = document.getElementById('resultBanner');
+      banner.classList.add('opacity-0', 'scale-95');
+    }
+
+    function nextOpponent() {
+      if (isPlayingRound || characters.length === 0) return;
+      currentOpponentIndex = (currentOpponentIndex + 1) % characters.length;
+      renderRoster();
+      updateOpponentView();
+      playSoundEffect('pop');
+    }
+
+    function playHand(playerChoice) {
+      if (isPlayingRound || characters.length === 0) return;
+      isPlayingRound = true;
+      initAudio();
+
+      const char = characters[currentOpponentIndex];
+      const playerHand = HANDS[playerChoice];
+      const opponentBadge = document.getElementById('opponentHandBadge');
+      const playerHandDisplay = document.getElementById('playerHandDisplay');
+      const dialogueBox = document.getElementById('dialogueBox');
+      const resultBanner = document.getElementById('resultBanner');
+      const playerContainer = document.getElementById('playerAvatarContainer');
+      const opponentContainer = document.getElementById('opponentAvatarContainer');
+
+      // じゃん・けん・ぽん！
+      playSoundEffect('drumroll');
+      resultBanner.classList.add('opacity-0');
+      opponentBadge.classList.add('scale-0');
+      dialogueBox.innerText = '「剪刀、石頭、布……！(じゃん・けん・ぽん！)」';
+
+      playerHandDisplay.innerText = '✊';
+      playerContainer.classList.add('animate-fist-shake');
+      opponentContainer.classList.add('animate-fist-shake');
+
+      const choices = ['rock', 'scissors', 'paper'];
+      const opponentChoice = choices[Math.floor(Math.random() * choices.length)];
+      const opponentHand = HANDS[opponentChoice];
+
+      setTimeout(() => {
+        playerContainer.classList.remove('animate-fist-shake');
+        opponentContainer.classList.remove('animate-fist-shake');
+
+        playerHandDisplay.innerText = playerHand.emoji;
+        opponentBadge.innerText = opponentHand.emoji;
+        opponentBadge.classList.remove('scale-0');
+
+        if (playerChoice === opponentChoice) {
+          playSoundEffect('draw');
+          dialogueBox.innerText = char.drawQuote || '「平手啦！再來一局！」';
+          resultBanner.innerText = `平手啦！大家都是 ${playerHand.label}！`;
+          resultBanner.className = 'text-center font-black text-xl md:text-2xl py-2 my-1 rounded-xl bg-yellow-300 text-yellow-950 comic-box-sm transition-all duration-300';
+          document.getElementById('playerStateText').innerText = '雙方平手！';
+        } else if (playerHand.beats === opponentChoice) {
+          playSoundEffect('win');
+          chocobiScore += 1;
+          winStreak += 1;
+          dialogueBox.innerText = char.loseQuote || '「嗚哇～輸給你了！」';
+          resultBanner.innerText = `🎉 恭喜你獲勝！獲得巧克比餅乾！`;
+          resultBanner.className = 'text-center font-black text-xl md:text-2xl py-2 my-1 rounded-xl bg-rose-500 text-white comic-box-sm transition-all duration-300';
+          document.getElementById('playerStateText').innerText = '👑 你贏了！太棒啦！';
+
+          if (typeof confetti === 'function') {
+            confetti({
+              particleCount: 50,
+              spread: 60,
+              origin: { y: 0.65 }
+            });
+          }
+        } else {
+          playSoundEffect('lose');
+          winStreak = 0;
+          dialogueBox.innerText = char.winQuote || '「哈哈！我贏了～！」';
+          resultBanner.innerText = `💥 ${char.name} 獲勝！再接再厲！`;
+          resultBanner.className = 'text-center font-black text-xl md:text-2xl py-2 my-1 rounded-xl bg-slate-800 text-white comic-box-sm transition-all duration-300';
+          document.getElementById('playerStateText').innerText = '😢 惜敗，再來一場！';
+        }
+
+        document.getElementById('chocobiCount').innerText = chocobiScore;
+        document.getElementById('streakCount').innerText = winStreak;
+        isPlayingRound = false;
+      }, 750);
+    }
+
+    function resetScore() {
+      chocobiScore = 0;
+      winStreak = 0;
+      document.getElementById('chocobiCount').innerText = '0';
+      document.getElementById('streakCount').innerText = '0';
+      playSoundEffect('pop');
+      updateOpponentView();
+    }
+
+    /* ==========================================================
+       ADMIN MODAL LOGIC & ACTIONS
+    ========================================================== */
+    function openAdminModal() {
+      renderAdminCharacterList();
+      document.getElementById('adminModal').classList.remove('hidden');
+      document.getElementById('adminModal').classList.add('flex');
+    }
+
+    function closeAdminModal() {
+      document.getElementById('adminModal').classList.add('hidden');
+      document.getElementById('adminModal').classList.remove('flex');
+      renderRoster();
+      updateOpponentView();
+    }
+
+    function switchAdminTab(tab) {
+      const tabChars = document.getElementById('tabContentCharacters');
+      const tabBgm = document.getElementById('tabContentBgm');
+      const btnChars = document.getElementById('tabBtnChars');
+      const btnBgm = document.getElementById('tabBtnBgm');
+
+      if (tab === 'characters') {
+        tabChars.classList.remove('hidden');
+        tabBgm.classList.add('hidden');
+        btnChars.className = 'px-4 py-2 rounded-t-xl bg-white border-t-2 border-x-2 border-slate-800 text-rose-600';
+        btnBgm.className = 'px-4 py-2 rounded-t-xl bg-slate-200 text-slate-600 hover:bg-slate-300';
+      } else {
+        tabChars.classList.add('hidden');
+        tabBgm.classList.remove('hidden');
+        btnBgm.className = 'px-4 py-2 rounded-t-xl bg-white border-t-2 border-x-2 border-slate-800 text-purple-600';
+        btnChars.className = 'px-4 py-2 rounded-t-xl bg-slate-200 text-slate-600 hover:bg-slate-300';
+      }
+      playSoundEffect('pop');
+    }
+
+    function renderAdminCharacterList() {
+      const listContainer = document.getElementById('adminCharacterList');
+      listContainer.innerHTML = '';
+
+      characters.forEach((char, index) => {
+        const item = document.createElement('div');
+        item.className = 'p-3 bg-slate-50 hover:bg-white rounded-xl border-2 border-slate-300 transition shadow-sm space-y-2';
+        
+        item.innerHTML = `
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <div class="w-9 h-9 rounded-full overflow-hidden bg-white border border-slate-700 flex-shrink-0">
+                ${renderCharacterAvatar(char)}
+              </div>
+              <div class="font-black text-slate-800 text-sm">#${index + 1} ${char.name}</div>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <button onclick="saveCharacterRow(${index})" class="comic-box-sm bg-emerald-500 hover:bg-emerald-600 text-white text-xs px-2.5 py-1 rounded-lg font-black comic-btn">
+                💾 儲存修改
+              </button>
+              ${characters.length > 1 ? `
+                <button onclick="deleteCharacterRow(${index})" class="comic-box-sm bg-rose-500 hover:bg-rose-600 text-white text-xs px-2.5 py-1 rounded-lg font-black comic-btn">
+                  🗑️ 刪除
+                </button>
+              ` : ''}
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs pt-1">
+            <div>
+              <label class="font-bold text-slate-600">名字：</label>
+              <input id="char_name_${index}" type="text" value="${char.name.replace(/"/g, '&quot;')}" class="w-full border border-slate-300 rounded px-2 py-1 font-bold">
+            </div>
+            <div>
+              <label class="font-bold text-slate-600">稱號/標籤：</label>
+              <input id="char_tag_${index}" type="text" value="${(char.tag || '').replace(/"/g, '&quot;')}" class="w-full border border-slate-300 rounded px-2 py-1 font-bold">
+            </div>
+          </div>
+
+          <div class="text-xs">
+            <label class="font-bold text-slate-600">開場白：</label>
+            <input id="char_intro_${index}" type="text" value="${(char.intro || '').replace(/"/g, '&quot;')}" class="w-full border border-slate-300 rounded px-2 py-1 font-bold">
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+            <div>
+              <label class="font-bold text-emerald-700">獲勝台詞：</label>
+              <input id="char_win_${index}" type="text" value="${(char.winQuote || '').replace(/"/g, '&quot;')}" class="w-full border border-slate-300 rounded px-2 py-1 font-bold">
+            </div>
+            <div>
+              <label class="font-bold text-rose-700">落敗台詞：</label>
+              <input id="char_lose_${index}" type="text" value="${(char.loseQuote || '').replace(/"/g, '&quot;')}" class="w-full border border-slate-300 rounded px-2 py-1 font-bold">
+            </div>
+            <div>
+              <label class="font-bold text-amber-700">平手台詞：</label>
+              <input id="char_draw_${index}" type="text" value="${(char.drawQuote || '').replace(/"/g, '&quot;')}" class="w-full border border-slate-300 rounded px-2 py-1 font-bold">
+            </div>
+          </div>
+        `;
+        listContainer.appendChild(item);
+      });
+    }
+
+    function saveCharacterRow(index) {
+      const char = characters[index];
+      char.name = document.getElementById(`char_name_${index}`).value.trim() || char.name;
+      char.tag = document.getElementById(`char_tag_${index}`).value.trim() || char.tag;
+      char.intro = document.getElementById(`char_intro_${index}`).value.trim() || char.intro;
+      char.winQuote = document.getElementById(`char_win_${index}`).value.trim() || char.winQuote;
+      char.loseQuote = document.getElementById(`char_lose_${index}`).value.trim() || char.loseQuote;
+      char.drawQuote = document.getElementById(`char_draw_${index}`).value.trim() || char.drawQuote;
+
+      saveCharacters();
+      renderRoster();
+      updateOpponentView();
+      playSoundEffect('pop');
+      alert(`✅ 角色「${char.name}」修改已儲存！`);
+    }
+
+    function deleteCharacterRow(index) {
+      const charName = characters[index].name;
+      if (confirm(`確定要刪除「${charName}」嗎？`)) {
+        characters.splice(index, 1);
+        if (currentOpponentIndex >= characters.length) {
+          currentOpponentIndex = 0;
+        }
+        saveCharacters();
+        renderAdminCharacterList();
+        renderRoster();
+        updateOpponentView();
+        playSoundEffect('pop');
+      }
+    }
+
+    function toggleAvatarInput() {
+      const radios = document.getElementsByName('newAvatarType');
+      let val = 'preset_star';
+      for (const r of radios) {
+        if (r.checked) val = r.value;
+      }
+      const container = document.getElementById('customUrlInputContainer');
+      if (val === 'custom_url') {
+        container.classList.remove('hidden');
+      } else {
+        container.classList.add('hidden');
+      }
+    }
+
+    function addNewCharacter() {
+      const nameInput = document.getElementById('newCharName').value.trim();
+      const tagInput = document.getElementById('newCharTag').value.trim();
+      const introInput = document.getElementById('newCharIntro').value.trim();
+      const winInput = document.getElementById('newCharWin').value.trim();
+      const loseInput = document.getElementById('newCharLose').value.trim();
+      const drawInput = document.getElementById('newCharDraw').value.trim();
+
+      if (!nameInput) {
+        alert('請先輸入人物姓名！');
         return;
       }
 
-      const customItems = [
-        { name: globalCustomConfig[0].name, amount: p1 },
-        { name: globalCustomConfig[1].name, amount: p2 },
-        { name: globalCustomConfig[2].name, amount: p3 }
-      ];
-
-      if (idxStr === "") {
-        // 新增學生
-        if (studentData.some(s => s.seat === seat)) {
-          showCustomAlert("座號重複", `座號 ${seat} 號已經存在於名單中，請修改為其他座號！`, true);
-          return;
-        }
-        studentData.push({
-          id: Date.now(),
-          seat: seat,
-          name: name,
-          category: category,
-          customItems: customItems,
-          paid: isPaid
-        });
-        showCustomAlert("新增成功", `已成功將「${seat} 號 ${name}」加入收費名冊！`);
-      } else {
-        // 編輯學生
-        const editIdx = parseInt(idxStr, 10);
-        // 檢查座號是否與其他人衝突
-        const seatConflict = studentData.some((s, i) => i !== editIdx && s.seat === seat);
-        if (seatConflict) {
-          showCustomAlert("座號重複", `座號 ${seat} 號已被其他學生使用，請重新確認！`, true);
-          return;
-        }
-
-        studentData[editIdx].seat = seat;
-        studentData[editIdx].name = name;
-        studentData[editIdx].category = category;
-        studentData[editIdx].customItems = customItems;
-        studentData[editIdx].paid = isPaid;
-        showCustomAlert("儲存成功", `「${seat} 號 ${name}」的收費資料已修改完成！`);
+      const radios = document.getElementsByName('newAvatarType');
+      let avatarType = 'preset_star';
+      for (const r of radios) {
+        if (r.checked) avatarType = r.value;
       }
+      const avatarUrl = document.getElementById('newCharAvatarUrl').value.trim();
 
-      // 自動依座號由小至大排序
-      studentData.sort((a, b) => a.seat - b.seat);
-      closeStudentModal();
-      renderAll();
+      const newChar = {
+        id: "char_" + Date.now(),
+        name: nameInput,
+        tag: tagInput || "新登場好朋友",
+        color: "#6366F1",
+        intro: introInput || `「我是${nameInput}，請多指教，來猜拳吧！」`,
+        winQuote: winInput || `「太棒了！我${nameInput}獲勝啦！」`,
+        loseQuote: loseInput || `「哎呀～真可惜，下次不會輸了！」`,
+        drawQuote: drawInput || `「平手了！我們很有默契喔！」`,
+        avatarType: avatarType,
+        avatarUrl: avatarUrl
+      };
+
+      characters.push(newChar);
+      saveCharacters();
+      renderAdminCharacterList();
+      renderRoster();
+      
+      // Auto-switch to new character
+      currentOpponentIndex = characters.length - 1;
+      updateOpponentView();
+
+      // Reset form
+      document.getElementById('newCharName').value = '';
+      document.getElementById('newCharTag').value = '';
+      document.getElementById('newCharIntro').value = '';
+      document.getElementById('newCharWin').value = '';
+      document.getElementById('newCharLose').value = '';
+      document.getElementById('newCharDraw').value = '';
+      document.getElementById('newCharAvatarUrl').value = '';
+
+      playSoundEffect('win');
+      alert(`🎉 成功新增人物「${newChar.name}」！`);
     }
 
-    // 刪除學生
-    function deleteStudent(index) {
-      const s = studentData[index];
-      studentData.splice(index, 1);
-      renderAll();
-      showCustomAlert("刪除成功", `已將「${s.seat} 號 ${s.name}」移出收費名冊。`);
-    }
-
-    // 載入預設資料
-<!-- ... existing code ... -->
+    window.addEventListener('DOMContentLoaded', () => {
+      loadCharacters();
+      renderRoster();
+      updateOpponentView();
+    });
+  </script>
+</body>
+</html>
